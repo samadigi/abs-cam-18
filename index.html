@@ -549,6 +549,70 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    /* Penampil Foto & Thumbnail Riwayat Presensi In-App */
+    .att-item-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .att-item-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .att-photo-thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #020617;
+      border: 1.5px solid var(--border-dark);
+      flex-shrink: 0;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .att-photo-thumb:hover {
+      transform: scale(1.05);
+      border-color: var(--primary-light);
+    }
+    .att-photo-placeholder {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1.5px dashed var(--border-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .photo-modal-view-wrap {
+      position: relative;
+      width: 100%;
+      height: 310px;
+      background: #020617;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-dark);
+      margin-bottom: 12px;
+    }
+    .photo-modal-view-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
@@ -615,7 +679,10 @@
         <div id="camFallback" style="display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; background:#070f26; text-align:center; padding:16px;">
           <i class="fa-solid fa-camera-rotate" style="font-size:3rem; color:var(--primary-light); margin-bottom:8px;"></i>
           <span style="font-size:0.8rem; font-weight:700;">Kamera Belum Aktif</span>
-          <span style="font-size:0.7rem; color:var(--text-muted);">Izinkan akses kamera di browser HP Anda.</span>
+          <span style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Izinkan akses kamera di browser HP Anda.</span>
+          <button id="btnRetryCamera" class="badge badge-primary" style="border:none; cursor:pointer; padding:6px 12px;">
+            <i class="fa-solid fa-rotate-right"></i> Aktifkan Kamera
+          </button>
         </div>
 
         <div class="camera-badge-time">
@@ -783,6 +850,48 @@
     </nav>
   </div>
 
+  <!-- Modal Penampil Foto Presensi (In-App Lightbox) -->
+  <div id="modalPhotoViewer" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 400px; padding: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:800; font-size:1rem; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-camera-retro" style="color:var(--primary-light);"></i>
+          <span class="gradient-text-blue">Hasil Scan Wajah</span>
+        </div>
+        <button class="btn-icon" id="btnClosePhotoViewer" style="width:30px; height:30px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="photo-modal-view-wrap">
+        <img id="viewerPhotoImg" src="" alt="Foto Presensi" onerror="this.onerror=null; this.src='https://placehold.co/400x400/0f172a/38bdf8?text=Foto+Presensi';">
+        <div id="viewerPhotoBadge" style="position:absolute; top:10px; right:10px;">
+          <span class="badge badge-success">Masuk</span>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-card); border:1px solid var(--border-dark); border-radius:12px; padding:12px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span id="viewerUserName" style="font-weight:700; font-size:0.88rem;">Karyawan</span>
+          <span id="viewerStatusBadge" class="badge badge-success">Tepat Waktu</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.72rem; color:var(--text-muted);">
+          <div><i class="fa-solid fa-clock" style="color:var(--primary-light); margin-right:4px;"></i> <span id="viewerTimeText">08:00 WIB</span></div>
+          <div><i class="fa-solid fa-location-dot" style="color:#ef4444; margin-right:4px;"></i> <span id="viewerDistText">Jarak: 18m</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <a id="btnViewerDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-action-secondary" style="margin-top:0; text-decoration:none; text-align:center;">
+          <i class="fa-brands fa-google-drive" style="color:#38bdf8;"></i> Buka Drive
+        </a>
+        <button id="btnDismissPhotoViewer" class="btn-action-primary">
+          <i class="fa-solid fa-check"></i> Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Konfigurasi URL Apps Script -->
   <div id="modalApiConfig" class="modal-backdrop">
     <div class="modal-box">
@@ -943,7 +1052,7 @@
           } else if (action === 'getAttendanceReport') {
             const history = JSON.parse(localStorage.getItem('geoface_mock_history') || '[]');
             if (history.length === 0) {
-              history.push({ id: 'ATT-1', type: 'Masuk', time: '07:55 WIB', distance: 18, status: 'Tepat Waktu' });
+              history.push({ id: 'ATT-1', type: 'Masuk', time: '07:55 WIB', distance: 18, status: 'Tepat Waktu', photoUrl: '' });
             }
             resolve({ success: true, data: history });
           } else if (action === 'recordAttendance') {
@@ -955,7 +1064,8 @@
               type: payload.type,
               time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
               distance: payload.distance,
-              status: 'Tepat Waktu'
+              status: 'Tepat Waktu',
+              photoUrl: payload.facePhoto || ''
             };
             history.unshift(newRecord);
             localStorage.setItem('geoface_mock_history', JSON.stringify(history));
@@ -1204,14 +1314,24 @@
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640 },
+              height: { ideal: 640 }
+            },
+            audio: false
           });
           video.srcObject = stream;
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('autoplay', 'true');
+          video.muted = true;
+          await video.play().catch(e => console.warn('Autoplay error:', e));
           fallback.style.display = 'none';
         } else {
           fallback.style.display = 'flex';
         }
       } catch (e) {
+        console.warn('Gagal akses kamera:', e);
         fallback.style.display = 'flex';
       }
     }
@@ -1220,9 +1340,28 @@
       const video = document.getElementById('faceVideo');
       const canvas = document.getElementById('faceCanvas');
       if (!video || !canvas) return '';
+
+      // Validasi apakah video kamera benar-benar sudah siap
+      if (!video.srcObject || video.readyState < 2 || video.videoWidth === 0) {
+        console.warn('Stream video belum menghasilkan frame.');
+        return '';
+      }
+
+      // Tentukan resolusi target optimal agar ukuran upload ringan (< 50KB)
+      const targetWidth = 400;
+      const targetHeight = Math.round((video.videoHeight / video.videoWidth) * targetWidth) || 400;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.8);
+      // Cerminkan kembali seperti cermin selfie HP
+      ctx.save();
+      ctx.translate(targetWidth, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+      ctx.restore();
+
+      return canvas.toDataURL('image/jpeg', 0.72);
     }
 
     async function handleAttendance(type) {
@@ -1231,8 +1370,14 @@
         return;
       }
 
-      showToast(`Merekam presensi ${type}...`);
       const facePhoto = captureFaceBase64();
+      if (!facePhoto) {
+        showToast('Kamera belum siap! Izinkan akses kamera dan pastikan wajah terlihat.', true);
+        startCamera();
+        return;
+      }
+
+      showToast(`Merekam presensi & mengupload foto...`);
 
       const res = await apiCall('recordAttendance', {
         username: currentSession.username,
@@ -1245,37 +1390,120 @@
       });
 
       if (res.success) {
-        showToast(`Presensi ${type} Berhasil! (${res.data?.status || 'Tepat Waktu'})`);
+        if (res.data && res.data.photoSaved === false) {
+          showToast(`Presensi ${type} tercatat, tetapi foto gagal diupload: ${res.data.photoError || 'Cek izin Drive'}`, true);
+        } else {
+          showToast(`Presensi ${type} & Foto Berhasil Disimpan!`);
+        }
         loadAttendanceHistory();
       } else {
         showToast(res.message || 'Presensi gagal diproses.', true);
       }
     }
 
+    function formatDirectPhotoUrl(url) {
+      if (!url) return '';
+      if (url.startsWith('data:image')) return url;
+      // Konversi tautan Google Drive agar dapat langsung dirender sebagai gambar <img>
+      const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+      }
+      return url;
+    }
+
+    let activeHistoryData = [];
+
     async function loadAttendanceHistory() {
       const res = await apiCall('getAttendanceReport', {});
       const list = document.getElementById('attendanceHistoryList');
       list.innerHTML = '';
       if (res.success && res.data && res.data.length > 0) {
-        res.data.slice(0, 5).forEach(row => {
+        activeHistoryData = res.data;
+        res.data.slice(0, 10).forEach((row, idx) => {
           const item = document.createElement('div');
-          item.className = 'ui-card';
-          item.style.padding = '10px';
-          item.style.marginBottom = '8px';
-          item.style.display = 'flex';
-          item.style.justifyContent = 'space-between';
-          item.style.alignItems = 'center';
+          item.className = 'att-item-card';
+
+          const directPhoto = formatDirectPhotoUrl(row.photoUrl);
+          const photoThumbHtml = directPhoto
+            ? `<div style="position:relative;">
+                 <img src="${directPhoto}" class="att-photo-thumb" data-idx="${idx}" alt="Selfie" onerror="this.onerror=null; this.src='https://placehold.co/100x100/0f172a/38bdf8?text=Foto';">
+                 <span style="position:absolute; bottom:2px; right:2px; background:rgba(0,0,0,0.7); border-radius:4px; padding:1px 3px; font-size:0.55rem; color:#fff; pointer-events:none;"><i class="fa-solid fa-expand"></i></span>
+               </div>`
+            : `<div class="att-photo-placeholder" title="Tidak ada foto"><i class="fa-solid fa-camera"></i></div>`;
+
           item.innerHTML = `
-            <div>
-              <div style="font-size:0.82rem; font-weight:700;">Presensi ${row.type}</div>
-              <div style="font-size:0.7rem; color:var(--text-muted);">${row.time} &bull; Jarak ${row.distance}m</div>
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+              ${photoThumbHtml}
+              <div style="min-width:0; flex:1;">
+                <div style="font-size:0.82rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Presensi ${row.type}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">${row.time} &bull; Jarak ${row.distance}m</div>
+                ${row.photoUrl ? `<button type="button" class="btn-open-photo" data-idx="${idx}" style="background:transparent; border:none; color:#38bdf8; font-size:0.68rem; padding:0; margin-top:3px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; font-weight:600;"><i class="fa-solid fa-eye"></i> Lihat Foto</button>` : `<span style="font-size:0.65rem; color:var(--text-muted); margin-top:3px; display:block;">Foto belum ada</span>`}
+              </div>
             </div>
-            <span class="badge ${row.status === 'Terlambat' ? 'badge-danger' : 'badge-success'}">${row.status}</span>
+            <span class="badge ${row.status === 'Terlambat' ? 'badge-danger' : 'badge-success'}" style="flex-shrink:0;">${row.status}</span>
           `;
           list.appendChild(item);
         });
+
+        // Event listener klik thumbnail foto dan tombol "Lihat Foto"
+        document.querySelectorAll('.att-photo-thumb, .btn-open-photo').forEach(el => {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(el.getAttribute('data-idx'), 10);
+            if (activeHistoryData[idx]) {
+              openPhotoViewerModal(activeHistoryData[idx]);
+            }
+          });
+        });
+      } else {
+        list.innerHTML = `
+          <div style="text-align:center; padding:18px; color:var(--text-muted); font-size:0.78rem;">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:1.5rem; margin-bottom:6px; display:block; opacity:0.6;"></i>
+            Belum ada catatan riwayat presensi.
+          </div>
+        `;
       }
     }
+
+    function openPhotoViewerModal(record) {
+      const modal = document.getElementById('modalPhotoViewer');
+      const img = document.getElementById('viewerPhotoImg');
+      const badge = document.getElementById('viewerPhotoBadge');
+      const userText = document.getElementById('viewerUserName');
+      const statusBadge = document.getElementById('viewerStatusBadge');
+      const timeText = document.getElementById('viewerTimeText');
+      const distText = document.getElementById('viewerDistText');
+      const driveBtn = document.getElementById('btnViewerDriveLink');
+
+      const directUrl = formatDirectPhotoUrl(record.photoUrl);
+      img.src = directUrl || 'https://placehold.co/400x400/0f172a/38bdf8?text=Foto+Presensi';
+
+      badge.innerHTML = `<span class="badge ${record.type === 'Masuk' ? 'badge-primary' : 'badge-success'}">${record.type}</span>`;
+      userText.innerText = record.fullName || record.username || currentSession.fullName;
+      
+      statusBadge.className = `badge ${record.status === 'Terlambat' ? 'badge-danger' : 'badge-success'}`;
+      statusBadge.innerText = record.status || 'Tepat Waktu';
+
+      timeText.innerText = `${record.date || 'Hari ini'} • ${record.time || '--:--'}`;
+      distText.innerText = `Jarak: ${record.distance || 0}m`;
+
+      if (record.photoUrl && record.photoUrl.startsWith('http')) {
+        driveBtn.href = record.photoUrl;
+        driveBtn.style.display = 'inline-flex';
+      } else {
+        driveBtn.style.display = 'none';
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    document.getElementById('btnClosePhotoViewer')?.addEventListener('click', () => {
+      document.getElementById('modalPhotoViewer').style.display = 'none';
+    });
+    document.getElementById('btnDismissPhotoViewer')?.addEventListener('click', () => {
+      document.getElementById('modalPhotoViewer').style.display = 'none';
+    });
 
     async function loadUserList() {
       const res = await apiCall('getUserList', {});
@@ -1336,6 +1564,10 @@
           loadUserList();
         }
       });
+    });
+
+    document.getElementById('btnRetryCamera')?.addEventListener('click', () => {
+      startCamera();
     });
 
     document.getElementById('btnBackToHome')?.addEventListener('click', () => {
