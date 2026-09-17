@@ -613,6 +613,38 @@
       height: 100%;
       object-fit: cover;
     }
+
+    /* Gaya Khusus Tab Pre-Login Role Switcher */
+    .role-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: var(--bg-dark);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-dark);
+      margin-bottom: 16px;
+    }
+    .role-switcher-btn {
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .role-switcher-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
   </style>
 </head>
 <body>
@@ -643,8 +675,8 @@
         <button class="btn-icon" id="btnThemeToggle" title="Ganti Tema">
           <i class="fa-solid fa-sun" id="themeIcon"></i>
         </button>
-        <button class="btn-icon" id="btnUserAction" title="Akun">
-          <i class="fa-solid fa-user-shield" id="roleIcon"></i>
+        <button class="btn-icon" id="btnHeaderLogout" style="display:none; color:var(--danger);" title="Keluar / Logout">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
       </div>
     </header>
@@ -655,8 +687,79 @@
       <span style="text-decoration:underline; font-weight:600;"><i class="fa-solid fa-gear"></i> Atur URL</span>
     </div>
 
+    <!-- TAB 0: PRE-LOGIN VIEW (Pilihan Karyawan atau Admin) -->
+    <section id="viewLogin" class="tab-view active">
+      <div style="text-align:center; padding:12px 6px 18px 6px;">
+        <div style="width:64px; height:64px; border-radius:20px; background:linear-gradient(135deg, #0284c7, #2563eb); margin:0 auto 12px auto; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 25px var(--accent-glow);">
+          <i class="fa-solid fa-user-lock" style="font-size:1.8rem; color:#fff;"></i>
+        </div>
+        <div style="font-size:1.25rem; font-weight:800;" class="gradient-text-blue">Portal Presensi</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Silakan login terlebih dahulu untuk melakukan presensi</div>
+      </div>
+
+      <!-- Pilihan Role Segmented Switcher -->
+      <div class="role-switcher">
+        <button type="button" id="btnRoleStaff" class="role-switcher-btn active">
+          <i class="fa-solid fa-user"></i> Karyawan
+        </button>
+        <button type="button" id="btnRoleAdmin" class="role-switcher-btn">
+          <i class="fa-solid fa-shield-halved"></i> Admin
+        </button>
+      </div>
+
+      <!-- Kartu Form Login -->
+      <div class="ui-card" style="padding:16px;">
+        <form id="formLoginPre" onsubmit="return false;">
+          <div class="form-group">
+            <label class="form-label" id="lblUsername">Username Karyawan</label>
+            <input type="text" id="loginUsername" class="input-ctrl" placeholder="Masukkan username karyawan" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div style="position:relative;">
+              <input type="password" id="loginPassword" class="input-ctrl" placeholder="Password" autocomplete="current-password">
+              <button id="btnToggleLoginPwd" type="button" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="loginRoleHint" style="font-size:0.72rem; color:var(--text-muted); margin-bottom:14px; background:var(--bg-dark); padding:8px 10px; border-radius:8px; border:1px solid var(--border-dark);">
+            Login Karyawan: Masukkan username & password Anda untuk melakukan presensi.
+          </div>
+
+          <button type="button" id="btnSubmitLoginPre" class="btn-action-primary">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Sekarang
+          </button>
+        </form>
+      </div>
+
+      <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); padding:6px 12px;">
+        Default Admin: <strong style="color:#38bdf8;">admin</strong> | Password: <strong style="color:#38bdf8;">123</strong>
+      </div>
+    </section>
+
     <!-- TAB 1: PRESENSI -->
-    <main id="viewAttendance" class="tab-view active">
+    <main id="viewAttendance" class="tab-view">
+      <!-- User Info Header -->
+      <div class="ui-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; margin-bottom:12px; background:linear-gradient(135deg, rgba(2,132,199,0.12), rgba(37,99,235,0.06)); border-color:rgba(56,189,248,0.3);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #0284c7, #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.9rem;">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:0.85rem;" id="loggedUserName">Karyawan</div>
+            <div style="font-size:0.68rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+              <span id="loggedUserHandle">@username</span> &bull; 
+              <span id="loggedUserRoleBadge" class="badge badge-primary" style="padding:1px 6px; font-size:0.6rem;">Staff</span>
+            </div>
+          </div>
+        </div>
+        <button id="btnLogoutSession" class="badge badge-danger" style="cursor:pointer; border:none; padding:5px 10px; font-size:0.7rem; display:flex; align-items:center; gap:4px;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+        </button>
+      </div>
+
       <div class="ui-card" style="display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div style="font-size:0.72rem; color:var(--text-muted);">Waktu Presensi</div>
@@ -834,16 +937,16 @@
     </section>
 
     <!-- Bottom Nav Bar -->
-    <nav class="app-bottom-nav">
-      <button class="nav-btn active" data-tab="viewAttendance">
+    <nav class="app-bottom-nav" id="appBottomNav" style="display:none;">
+      <button class="nav-btn active" id="navBtnAttendance" data-tab="viewAttendance">
         <i class="fa-solid fa-camera"></i>
         <span>Presensi</span>
       </button>
-      <button class="nav-btn" data-tab="viewAdminGeotag">
+      <button class="nav-btn" id="navBtnGeotag" data-tab="viewAdminGeotag" style="display:none;">
         <i class="fa-solid fa-map-location-dot"></i>
         <span>Geotagging</span>
       </button>
-      <button class="nav-btn" data-tab="viewAdminManage">
+      <button class="nav-btn" id="navBtnAdmin" data-tab="viewAdminManage" style="display:none;">
         <i class="fa-solid fa-sliders"></i>
         <span>Admin</span>
       </button>
@@ -1032,7 +1135,38 @@
       updateApiBanner(false);
       return new Promise((resolve) => {
         setTimeout(() => {
-          if (action === 'getOfficeConfig') {
+          if (action === 'login') {
+            const users = JSON.parse(localStorage.getItem('geoface_mock_users') || '[]');
+            if (users.length === 0) {
+              users.push({ userId: 'USR-1', fullName: 'Administrator Utama', username: 'admin', role: 'Admin' });
+              users.push({ userId: 'USR-2', fullName: 'Karyawan Demo', username: 'karyawan', role: 'Staff' });
+              localStorage.setItem('geoface_mock_users', JSON.stringify(users));
+            }
+            const found = users.find(u => u.username.toLowerCase() === (payload.username || '').toLowerCase());
+            if (found) {
+              if (payload.role && payload.role.toLowerCase() === 'admin' && found.role.toLowerCase() !== 'admin') {
+                resolve({ success: false, message: 'Akun Anda bukan Administrator. Silakan pilih tab Karyawan.' });
+                return;
+              }
+              if (payload.role && (payload.role.toLowerCase() === 'staff' || payload.role.toLowerCase() === 'karyawan') && found.role.toLowerCase() === 'admin') {
+                resolve({ success: false, message: 'Akun ini adalah Administrator. Silakan pilih tab Admin.' });
+                return;
+              }
+              resolve({
+                success: true,
+                message: 'Login berhasil.',
+                user: {
+                  userId: found.userId,
+                  username: found.username,
+                  fullName: found.fullName,
+                  role: found.role,
+                  sessionToken: 'mock-' + Date.now()
+                }
+              });
+            } else {
+              resolve({ success: false, message: 'Username atau password tidak ditemukan.' });
+            }
+          } else if (action === 'getOfficeConfig') {
             const saved = localStorage.getItem('geoface_mock_office');
             resolve({
               success: true,
@@ -1095,11 +1229,9 @@
       });
     }
 
-    let currentSession = JSON.parse(localStorage.getItem('geoface_session') || 'null') || {
-      username: 'karyawan',
-      fullName: 'Karyawan Demo',
-      role: 'Staff'
-    };
+    // Status Autentikasi Pengguna (null secara bawaan sebelum login)
+    let currentSession = JSON.parse(localStorage.getItem('geoface_session') || 'null');
+    let selectedLoginRole = 'Staff'; // Default pilihan role login: 'Staff' atau 'Admin'
 
     let officeConfig = {
       lat: -2.983671,
@@ -1176,6 +1308,83 @@
         text.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i> Terputus dari Apps Script. Cek URL / Izin deployment.';
         icon.style.color = 'var(--danger)';
       }
+    }
+
+    // Mengelola Tampilan Antarmuka Berdasarkan Status Login
+    function checkAuthState() {
+      const viewLogin = document.getElementById('viewLogin');
+      const viewAttendance = document.getElementById('viewAttendance');
+      const viewAdminGeotag = document.getElementById('viewAdminGeotag');
+      const viewAdminManage = document.getElementById('viewAdminManage');
+      const appBottomNav = document.getElementById('appBottomNav');
+      const btnHeaderLogout = document.getElementById('btnHeaderLogout');
+      const navBtnGeotag = document.getElementById('navBtnGeotag');
+      const navBtnAdmin = document.getElementById('navBtnAdmin');
+
+      if (!currentSession) {
+        // PENGGUNA BELUM LOGIN: Tampilkan halaman Pre-Login saja
+        stopCamera();
+        if (viewLogin) viewLogin.classList.add('active');
+        if (viewAttendance) viewAttendance.classList.remove('active');
+        if (viewAdminGeotag) viewAdminGeotag.classList.remove('active');
+        if (viewAdminManage) viewAdminManage.classList.remove('active');
+        if (appBottomNav) appBottomNav.style.display = 'none';
+        if (btnHeaderLogout) btnHeaderLogout.style.display = 'none';
+      } else {
+        // PENGGUNA SUDAH LOGIN: Buka antarmuka presensi
+        if (viewLogin) viewLogin.classList.remove('active');
+        if (viewAttendance) viewAttendance.classList.add('active');
+        if (appBottomNav) appBottomNav.style.display = 'flex';
+        if (btnHeaderLogout) btnHeaderLogout.style.display = 'flex';
+
+        // Tampilkan info profil di header presensi
+        const nameEl = document.getElementById('loggedUserName');
+        if (nameEl) nameEl.innerText = currentSession.fullName || currentSession.username;
+        const handleEl = document.getElementById('loggedUserHandle');
+        if (handleEl) handleEl.innerText = '@' + currentSession.username;
+        const roleBadge = document.getElementById('loggedUserRoleBadge');
+        if (roleBadge) {
+          roleBadge.innerText = currentSession.role;
+          roleBadge.className = (currentSession.role === 'Admin') ? 'badge badge-danger' : 'badge badge-primary';
+        }
+        const userBadge = document.getElementById('txtUserRoleBadge');
+        if (userBadge) userBadge.innerText = currentSession.role;
+
+        // Kontrol Hak Akses Tab Navigasi:
+        if (navBtnGeotag) {
+          navBtnGeotag.style.display = (currentSession.role === 'Admin') ? 'flex' : 'none';
+        }
+        if (navBtnAdmin) {
+          navBtnAdmin.style.display = (currentSession.role === 'Admin') ? 'flex' : 'none';
+        }
+
+        // Jalankan kamera, peta, dan geolokasi hanya setelah login
+        initEmpMap();
+        trackUserGPS();
+        startCamera();
+        bootstrapData();
+      }
+    }
+
+    function stopCamera() {
+      const video = document.getElementById('faceVideo');
+      if (video && video.srcObject) {
+        try {
+          const stream = video.srcObject;
+          stream.getTracks().forEach(track => track.stop());
+        } catch (e) {}
+        video.srcObject = null;
+      }
+    }
+
+    function handleLogout() {
+      openConfirm('Konfirmasi Keluar', 'Apakah Anda yakin ingin keluar dari sesi presensi?', () => {
+        localStorage.removeItem('geoface_session');
+        currentSession = null;
+        stopCamera();
+        checkAuthState();
+        showToast('Anda telah keluar dari akun.');
+      });
     }
 
     function calcDistance(lat1, lon1, lat2, lon2) {
@@ -1268,13 +1477,16 @@
     }
 
     function trackUserGPS() {
+      if (!currentSession) return;
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             empPosition.lat = pos.coords.latitude;
             empPosition.lng = pos.coords.longitude;
-            document.getElementById('empLatVal').innerText = empPosition.lat.toFixed(6);
-            document.getElementById('empLngVal').innerText = empPosition.lng.toFixed(6);
+            const latEl = document.getElementById('empLatVal');
+            const lngEl = document.getElementById('empLngVal');
+            if (latEl) latEl.innerText = empPosition.lat.toFixed(6);
+            if (lngEl) lngEl.innerText = empPosition.lng.toFixed(6);
 
             if (empMap && empMarker) {
               empMarker.setLatLng([empPosition.lat, empPosition.lng]);
@@ -1282,26 +1494,34 @@
             }
 
             currentDistanceToOffice = calcDistance(empPosition.lat, empPosition.lng, officeConfig.lat, officeConfig.lng);
-            document.getElementById('camDistanceLabel').innerText = `Jarak: ${currentDistanceToOffice} m`;
+            const distLbl = document.getElementById('camDistanceLabel');
+            if (distLbl) distLbl.innerText = `Jarak: ${currentDistanceToOffice} m`;
 
             const badge = document.getElementById('badgeRadiusStatus');
-            if (currentDistanceToOffice <= officeConfig.radius) {
-              badge.className = 'badge badge-success';
-              badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (${currentDistanceToOffice}m)`;
-            } else {
-              badge.className = 'badge badge-danger';
-              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Luar Radius (${currentDistanceToOffice}m)`;
+            if (badge) {
+              if (currentDistanceToOffice <= officeConfig.radius) {
+                badge.className = 'badge badge-success';
+                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (${currentDistanceToOffice}m)`;
+              } else {
+                badge.className = 'badge badge-danger';
+                badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Luar Radius (${currentDistanceToOffice}m)`;
+              }
             }
 
             fetchAddress(empPosition.lat, empPosition.lng, (a) => {
-              document.getElementById('empAddressText').innerText = `${a.line1}, ${a.line2}`;
+              const addrEl = document.getElementById('empAddressText');
+              if (addrEl) addrEl.innerText = `${a.line1}, ${a.line2}`;
             });
           },
           () => {
             currentDistanceToOffice = 18;
-            document.getElementById('camDistanceLabel').innerText = `Jarak: 18 m`;
-            document.getElementById('badgeRadiusStatus').className = 'badge badge-success';
-            document.getElementById('badgeRadiusStatus').innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (18m)`;
+            const distLbl = document.getElementById('camDistanceLabel');
+            if (distLbl) distLbl.innerText = `Jarak: 18 m`;
+            const badge = document.getElementById('badgeRadiusStatus');
+            if (badge) {
+              badge.className = 'badge badge-success';
+              badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (18m)`;
+            }
           },
           { enableHighAccuracy: true, timeout: 6000 }
         );
@@ -1309,6 +1529,7 @@
     }
 
     async function startCamera() {
+      if (!currentSession) return;
       const video = document.getElementById('faceVideo');
       const fallback = document.getElementById('camFallback');
       try {
@@ -1326,13 +1547,13 @@
           video.setAttribute('autoplay', 'true');
           video.muted = true;
           await video.play().catch(e => console.warn('Autoplay error:', e));
-          fallback.style.display = 'none';
+          if (fallback) fallback.style.display = 'none';
         } else {
-          fallback.style.display = 'flex';
+          if (fallback) fallback.style.display = 'flex';
         }
       } catch (e) {
         console.warn('Gagal akses kamera:', e);
-        fallback.style.display = 'flex';
+        if (fallback) fallback.style.display = 'flex';
       }
     }
 
@@ -1365,6 +1586,12 @@
     }
 
     async function handleAttendance(type) {
+      if (!currentSession) {
+        showToast('Silakan login terlebih dahulu!', true);
+        checkAuthState();
+        return;
+      }
+
       if (currentDistanceToOffice > officeConfig.radius) {
         showToast(`Gagal! Anda berada di luar radius kantor (${currentDistanceToOffice}m > ${officeConfig.radius}m).`, true);
         return;
@@ -1661,15 +1888,16 @@
     // Jam Digital
     function updateClock() {
       const now = new Date();
-      document.getElementById('liveClock').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
-      document.getElementById('liveDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+      const clockEl = document.getElementById('liveClock');
+      const dateEl = document.getElementById('liveDate');
+      if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+      if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
     }
     setInterval(updateClock, 1000);
     updateClock();
 
     // Modal Manajemen
     const modalApiConfig = document.getElementById('modalApiConfig');
-    const modalAuth = document.getElementById('modalAuth');
     const modalAddUser = document.getElementById('modalAddUser');
 
     document.getElementById('btnApiConfig')?.addEventListener('click', () => {
@@ -1687,7 +1915,7 @@
       localStorage.setItem('geoface_gas_url', val);
       modalApiConfig.style.display = 'none';
       showToast('URL Apps Script disimpan!');
-      bootstrapData();
+      if (currentSession) bootstrapData();
     });
 
     document.getElementById('btnTestApi')?.addEventListener('click', async () => {
@@ -1700,32 +1928,75 @@
       }
     });
 
-    document.getElementById('btnUserAction')?.addEventListener('click', () => modalAuth.style.display = 'flex');
-    document.getElementById('btnCloseAuthModal')?.addEventListener('click', () => modalAuth.style.display = 'none');
     document.getElementById('btnOpenAddUserModal')?.addEventListener('click', () => modalAddUser.style.display = 'flex');
     document.getElementById('btnCloseAddUser')?.addEventListener('click', () => modalAddUser.style.display = 'none');
 
-    document.getElementById('btnTogglePwd')?.addEventListener('click', () => {
-      const p = document.getElementById('authPassword');
+    // Toggle Role Login Pre-Login (Karyawan vs Admin)
+    const btnRoleStaff = document.getElementById('btnRoleStaff');
+    const btnRoleAdmin = document.getElementById('btnRoleAdmin');
+    const lblUsername = document.getElementById('lblUsername');
+    const loginUsername = document.getElementById('loginUsername');
+    const loginRoleHint = document.getElementById('loginRoleHint');
+
+    btnRoleStaff?.addEventListener('click', () => {
+      selectedLoginRole = 'Staff';
+      btnRoleStaff.classList.add('active');
+      btnRoleAdmin.classList.remove('active');
+      lblUsername.innerText = 'Username Karyawan';
+      loginUsername.placeholder = 'Masukkan username karyawan';
+      loginRoleHint.innerHTML = 'Login Karyawan: Masukkan username & password Anda untuk melakukan presensi.';
+    });
+
+    btnRoleAdmin?.addEventListener('click', () => {
+      selectedLoginRole = 'Admin';
+      btnRoleAdmin.classList.add('active');
+      btnRoleStaff.classList.remove('active');
+      lblUsername.innerText = 'Username Admin';
+      loginUsername.placeholder = 'admin';
+      loginRoleHint.innerHTML = 'Login Admin: Memiliki akses penuh ke Geotagging & Manajemen Karyawan. (Default: <b>admin</b> / <b>123</b>)';
+    });
+
+    // Toggle Show/Hide Password di Form Login
+    document.getElementById('btnToggleLoginPwd')?.addEventListener('click', () => {
+      const p = document.getElementById('loginPassword');
       p.type = (p.type === 'password') ? 'text' : 'password';
     });
 
-    document.getElementById('btnSubmitLogin')?.addEventListener('click', async () => {
-      const u = document.getElementById('authUsername').value.trim();
-      const p = document.getElementById('authPassword').value.trim();
-      if (!u || !p) return showToast('Lengkapi username dan password!', true);
+    // Proses Submit Login
+    async function submitPreLogin() {
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
 
-      const res = await apiCall('login', { username: u, password: p });
+      if (!u || !p) {
+        showToast('Lengkapi username dan password!', true);
+        return;
+      }
+
+      showToast(`Memvalidasi akun ${selectedLoginRole}...`);
+      const res = await apiCall('login', { username: u, password: p, role: selectedLoginRole });
+
       if (res.success && res.user) {
         currentSession = res.user;
         localStorage.setItem('geoface_session', JSON.stringify(currentSession));
-        showToast(`Login berhasil sebagai ${currentSession.role}`);
-        document.getElementById('txtUserRoleBadge').innerText = currentSession.role;
-        modalAuth.style.display = 'none';
+        showToast(`Login berhasil sebagai ${currentSession.role}!`);
+        // Kosongkan form login
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+        checkAuthState();
       } else {
-        showToast(res.message || 'Login gagal.', true);
+        showToast(res.message || 'Login gagal. Periksa kembali username & password.', true);
       }
+    }
+
+    document.getElementById('formLoginPre')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitPreLogin();
     });
+    document.getElementById('btnSubmitLoginPre')?.addEventListener('click', submitPreLogin);
+
+    // Logout Handlers
+    document.getElementById('btnLogoutSession')?.addEventListener('click', handleLogout);
+    document.getElementById('btnHeaderLogout')?.addEventListener('click', handleLogout);
 
     document.getElementById('btnSaveNewUser')?.addEventListener('click', async () => {
       const fullName = document.getElementById('newFullName').value.trim();
@@ -1748,22 +2019,27 @@
       const res = await apiCall('getOfficeConfig');
       if (res.success && res.data) {
         officeConfig = res.data;
-        document.getElementById('geoInputTitle').value = officeConfig.title;
-        document.getElementById('geoLatText').innerText = officeConfig.lat.toFixed(6);
-        document.getElementById('geoLngText').innerText = officeConfig.lng.toFixed(6);
-        document.getElementById('geoLine1').value = officeConfig.line1;
-        document.getElementById('geoLine2').value = officeConfig.line2;
-        document.getElementById('geoLine3').value = officeConfig.line3;
-        document.getElementById('geoRadiusMeters').value = officeConfig.radius;
+        const gTitle = document.getElementById('geoInputTitle');
+        const gLat = document.getElementById('geoLatText');
+        const gLng = document.getElementById('geoLngText');
+        const gL1 = document.getElementById('geoLine1');
+        const gL2 = document.getElementById('geoLine2');
+        const gL3 = document.getElementById('geoLine3');
+        const gRad = document.getElementById('geoRadiusMeters');
+
+        if (gTitle) gTitle.value = officeConfig.title;
+        if (gLat) gLat.innerText = officeConfig.lat.toFixed(6);
+        if (gLng) gLng.innerText = officeConfig.lng.toFixed(6);
+        if (gL1) gL1.value = officeConfig.line1;
+        if (gL2) gL2.value = officeConfig.line2;
+        if (gL3) gL3.value = officeConfig.line3;
+        if (gRad) gRad.value = officeConfig.radius;
       }
       loadAttendanceHistory();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      initEmpMap();
-      trackUserGPS();
-      startCamera();
-      bootstrapData();
+      checkAuthState();
     });
   </script>
 </body>
