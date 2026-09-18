@@ -1,171 +1,339 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GeoFace - Presensi Mobile & Geotagging</title>
-
-  <!-- Google Fonts & Font Awesome CDN -->
+  <title>GeoFace Presensi — Mobile Attendance System</title>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
   <!-- Leaflet Map CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
 
   <style>
     :root {
-      --primary: #0284c7;
+      --bg-main: #0b1120;
+      --surface-card: #131d33;
+      --surface-elevated: #1e293b;
+      --border-dark: rgba(255, 255, 255, 0.08);
+      --primary: #0ea5e9;
       --primary-light: #38bdf8;
-      --primary-dark: #0369a1;
-      --accent: #2563eb;
-      --accent-glow: rgba(56, 189, 248, 0.35);
-      --bg-dark: #070d1e;
-      --surface-dark: #0e172e;
-      --surface-card: #152244;
-      --border-dark: #1e325c;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
       --font-mono: 'JetBrains Mono', monospace;
     }
 
-    html.light {
-      --bg-dark: #edf4fe;
-      --surface-dark: #ffffff;
-      --surface-card: #f8fafc;
-      --border-dark: #cbd5e1;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --accent-glow: rgba(2, 132, 199, 0.2);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
     body {
-      background-color: var(--bg-dark);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-main);
       color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
       overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .mobile-app-wrapper {
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+
+    /* Modern Card & Surface */
+    .card-glass {
+      background: rgba(19, 29, 51, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-dark);
+      border-radius: 20px;
+    }
+
+    /* Camera Scanner Frame */
+    .cam-viewport-wrapper {
+      position: relative;
       width: 100%;
-      max-width: 430px;
-      min-height: 100vh;
-      background-color: var(--surface-dark);
+      height: 310px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #020617;
+      border: 2px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .cam-video-el {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror selfie camera */
+    }
+
+    .cam-face-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 175px;
+      height: 235px;
+      border-radius: 50% 50% 45% 45%;
+      border: 2.5px dashed rgba(56, 189, 248, 0.85);
+      box-shadow: 0 0 0 9999px rgba(11, 17, 32, 0.48);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cam-scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      box-shadow: 0 0 12px #38bdf8;
+      top: 0;
+      animation: scanAnim 2.6s infinite ease-in-out;
+    }
+
+    @keyframes scanAnim {
+      0% { top: 10%; opacity: 0.3; }
+      50% { top: 85%; opacity: 1; }
+      100% { top: 10%; opacity: 0.3; }
+    }
+
+    /* Interactive Map Styles */
+    .adv-map-box {
+      width: 100%;
+      height: 230px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border-dark);
+      position: relative;
+      z-index: 1;
+    }
+
+    .adv-map-box-lg {
+      height: 340px;
+    }
+
+    .adv-map-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-search-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-dark);
+      border-radius: 14px;
+      padding: 4px 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .map-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      padding: 6px 8px;
+      outline: none;
+    }
+
+    .map-search-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary-light);
+      cursor: pointer;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+    }
+
+    /* Interactive Custom Markers */
+    .adv-marker-wrap {
       position: relative;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .adv-marker-pin {
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .adv-marker-wrap:hover .adv-marker-pin {
+      transform: rotate(-45deg) scale(1.15);
+    }
+
+    .adv-marker-icon {
+      transform: rotate(45deg);
+      color: #ffffff;
+      font-size: 0.68rem;
+    }
+
+    /* Colors */
+    .adv-color-blue { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+    .adv-color-red { background: linear-gradient(135deg, #f87171, #ef4444); }
+    .adv-color-green { background: linear-gradient(135deg, #34d399, #10b981); }
+    .adv-color-purple { background: linear-gradient(135deg, #c084fc, #8b5cf6); }
+    .adv-color-amber { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+
+    /* Marker Sizes */
+    .adv-size-small .adv-marker-pin { width: 22px; height: 22px; }
+    .adv-size-medium .adv-marker-pin { width: 30px; height: 30px; }
+    .adv-size-large .adv-marker-pin { width: 38px; height: 38px; }
+    .adv-size-large .adv-marker-icon { font-size: 0.85rem; }
+
+    /* Pulse Ring */
+    .adv-pulse-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.4);
+      animation: advPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+      z-index: -1;
+    }
+
+    @keyframes advPulse {
+      0% { transform: scale(0.9); opacity: 0.9; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    /* Leaflet Popup Cards */
+    .leaflet-popup-content-wrapper {
+      background: #1e293b !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5) !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.4 !important;
+      width: 220px !important;
+    }
+    .leaflet-popup-tip {
+      background: #1e293b !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      color: #fff !important;
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      top: 8px !important;
+      right: 8px !important;
+    }
+
+    .adv-popup-card {
+      display: flex;
       flex-direction: column;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
-      border-left: 1px solid var(--border-dark);
-      border-right: 1px solid var(--border-dark);
-      padding-bottom: 80px;
     }
-
-    .gradient-text-blue {
-      background: linear-gradient(135deg, var(--primary-light), var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .adv-popup-image {
+      width: 100%;
+      height: 95px;
+      object-fit: cover;
+      background: #020617;
     }
-
-    .app-top-header {
-      padding: 12px 16px;
+    .adv-popup-body {
+      padding: 10px 12px;
+    }
+    .adv-popup-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f8fafc;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: rgba(14, 23, 46, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-dark);
-    }
-    html.light .app-top-header {
-      background: rgba(255, 255, 255, 0.95);
-    }
-
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 1.05rem;
-    }
-    .brand-logo-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      background: linear-gradient(135deg, #0284c7, #1d4ed8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: 0 4px 14px var(--accent-glow);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      flex-shrink: 0;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
       gap: 6px;
+      margin-bottom: 4px;
     }
-    .btn-icon {
-      width: 35px;
-      height: 35px;
-      border-radius: 10px;
-      border: 1px solid var(--border-dark);
-      background: var(--surface-card);
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 0.88rem;
-      transition: all 0.2s ease;
-    }
-    .btn-icon:hover {
-      border-color: var(--primary-light);
-    }
-
-    /* Status Bar API Connection */
-    .api-status-banner {
-      padding: 6px 14px;
+    .adv-popup-desc {
       font-size: 0.72rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(2, 132, 199, 0.12);
-      border-bottom: 1px solid var(--border-dark);
-      cursor: pointer;
+      color: #94a3b8;
+      margin-bottom: 6px;
     }
-    .api-status-banner.offline {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--warning);
+    .adv-popup-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 3px 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
+    /* Tab Views */
     .tab-view {
       display: none;
-      padding: 16px;
-      animation: fadeIn 0.25s ease forwards;
     }
     .tab-view.active {
       display: block;
+      animation: fadeIn 0.25s ease-out;
     }
 
     @keyframes fadeIn {
@@ -173,933 +341,466 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .ui-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-dark);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-    }
-
-    .camera-wrapper {
-      position: relative;
-      width: 100%;
-      height: 260px;
-      background: #020617;
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      border: 2px solid var(--border-dark);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #faceVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-    #faceCanvas {
-      display: none;
-    }
-
-    .scanner-line {
-      position: absolute;
-      top: 10%;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
-      box-shadow: 0 0 15px #38bdf8;
-      animation: scanAnim 3s infinite linear;
-      z-index: 5;
-    }
-    @keyframes scanAnim {
-      0% { top: 10%; opacity: 0.3; }
-      50% { top: 85%; opacity: 1; }
-      100% { top: 10%; opacity: 0.3; }
-    }
-
-    .face-oval-guide {
-      position: absolute;
-      width: 160px;
-      height: 210px;
-      border: 2px dashed var(--primary-light);
-      border-radius: 50%;
-      pointer-events: none;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
-      z-index: 4;
-    }
-
-    .camera-badge-time {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(11, 19, 41, 0.85);
-      backdrop-filter: blur(8px);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.72rem;
-      font-family: var(--font-mono);
-      color: #38bdf8;
-      z-index: 10;
-    }
-
-    .map-container-emp {
-      width: 100%;
-      height: 160px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-dark);
-      margin: 8px 0;
-      z-index: 1;
-    }
-
-    .geo-ref-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      background: var(--surface-card);
-      border-top-left-radius: var(--radius-lg);
-      border-top-right-radius: var(--radius-lg);
-      border: 1px solid var(--border-dark);
-      border-bottom: none;
-    }
-    .geo-dropdown-manual {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      color: var(--text-main);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-    }
-    .geo-btn-check {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 10px var(--accent-glow);
-    }
-
-    .geo-map-box {
-      width: 100%;
-      height: 240px;
-      position: relative;
-      border-left: 1px solid var(--border-dark);
-      border-right: 1px solid var(--border-dark);
-      z-index: 1;
-    }
-    #adminGeotagMap {
-      width: 100%;
-      height: 100%;
-    }
-
-    .map-float-tool {
-      position: absolute;
-      right: 12px;
-      z-index: 400;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .map-float-tool.top-right { top: 12px; }
-    .map-float-tool.bottom-right { bottom: 12px; }
-    .map-round-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(14, 23, 46, 0.92);
-      border: 1px solid var(--border-dark);
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      cursor: pointer;
-    }
-
-    .geo-details-pane {
-      background: var(--surface-card);
-      border: 1px solid var(--border-dark);
-      border-bottom-left-radius: var(--radius-lg);
-      border-bottom-right-radius: var(--radius-lg);
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .geo-field-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-    .geo-input-underline {
-      width: 100%;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid var(--primary);
-      color: var(--text-main);
-      padding: 4px 0 8px 0;
-      font-size: 0.92rem;
-      outline: none;
-      margin-bottom: 12px;
-      font-weight: 500;
-    }
-    .geo-input-underline.gray {
-      border-bottom: 1px solid var(--border-dark);
-      color: var(--text-muted);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-    .badge-success {
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .badge-danger {
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .badge-primary {
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--primary-light);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-
-    .btn-action-primary {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 5px 16px var(--accent-glow);
-    }
-    .btn-action-primary:active { transform: scale(0.98); }
-
-    .btn-action-secondary {
-      width: 100%;
-      padding: 11px;
-      border-radius: 12px;
-      background: var(--surface-card);
-      border: 1px solid var(--border-dark);
-      color: var(--text-main);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-top: 6px;
-    }
-
-    .app-bottom-nav {
+    /* Toast */
+    #toastContainer {
       position: fixed;
-      bottom: 0;
-      width: 100%;
-      max-width: 430px;
-      height: 64px;
-      background: rgba(14, 23, 46, 0.95);
-      backdrop-filter: blur(14px);
-      border-top: 1px solid var(--border-dark);
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      z-index: 1100;
-    }
-    html.light .app-bottom-nav {
-      background: rgba(255, 255, 255, 0.95);
-    }
-
-    .nav-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 8px 14px;
-      border-radius: 10px;
-      transition: all 0.2s ease;
-    }
-    .nav-btn i { font-size: 1.1rem; }
-    .nav-btn.active {
-      color: var(--primary-light);
-      background: rgba(56, 189, 248, 0.12);
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(5px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-      padding: 16px;
-    }
-    .modal-box {
-      width: 100%;
-      max-width: 380px;
-      background: var(--surface-dark);
-      border: 1px solid var(--border-dark);
-      border-radius: var(--radius-lg);
-      padding: 18px;
-    }
-
-    .form-group { margin-bottom: 12px; }
-    .form-label {
-      font-size: 0.76rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      display: block;
-    }
-    .input-ctrl {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-dark);
-      background: var(--surface-card);
-      color: var(--text-main);
-      font-size: 0.88rem;
-      outline: none;
-    }
-
-    .custom-red-pin {
-      background: #ef4444;
-      width: 22px;
-      height: 22px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2.5px solid #fff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }
-    .custom-blue-pulse {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #0284c7;
-      border: 3px solid #fff;
-      box-shadow: 0 0 12px #38bdf8;
-    }
-
-    #toastNotice {
-      position: fixed;
-      top: 18px;
+      top: 20px;
       left: 50%;
-      transform: translateX(-50%) translateY(-60px);
-      background: #0f172a;
-      border: 1px solid var(--primary);
-      color: #fff;
-      padding: 9px 18px;
-      border-radius: 30px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      transform: translateX(-50%);
       z-index: 9999;
-      opacity: 0;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
       pointer-events: none;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    #toastNotice.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-
-    /* Penampil Foto & Thumbnail Riwayat Presensi In-App */
-    .att-item-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-dark);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      margin-bottom: 10px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      transition: all 0.2s ease;
+      flex-direction: column;
+      gap: 8px;
+      width: 90%;
+      max-width: 400px;
     }
-    .att-item-card:hover {
-      border-color: rgba(56, 189, 248, 0.4);
-    }
-    .att-photo-thumb {
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
-      object-fit: cover;
-      background: #020617;
-      border: 1.5px solid var(--border-dark);
-      flex-shrink: 0;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .att-photo-thumb:hover {
-      transform: scale(1.05);
-      border-color: var(--primary-light);
-    }
-    .att-photo-placeholder {
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1.5px dashed var(--border-dark);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-    .photo-modal-view-wrap {
-      position: relative;
-      width: 100%;
-      height: 310px;
-      background: #020617;
+    .toast-msg {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(14px);
+      padding: 10px 16px;
       border-radius: 14px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--border-dark);
-      margin-bottom: 12px;
-    }
-    .photo-modal-view-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Gaya Khusus Tab Pre-Login Role Switcher */
-    .role-switcher {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      background: var(--bg-dark);
-      padding: 4px;
-      border-radius: 12px;
-      border: 1px solid var(--border-dark);
-      margin-bottom: 16px;
-    }
-    .role-switcher-btn {
-      padding: 10px 12px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: 9px;
+      color: #f8fafc;
       font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s ease;
+      gap: 10px;
+      pointer-events: auto;
+      animation: slideDown 0.25s ease-out;
     }
-    .role-switcher-btn.active {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: #fff;
-      box-shadow: 0 4px 12px var(--accent-glow);
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between pb-24 selection:bg-sky-500/30 selection:text-sky-300">
 
-  <div class="mobile-app-wrapper">
+  <div id="toastContainer"></div>
 
-    <!-- Top Header -->
-    <header class="app-top-header">
-      <div class="brand-logo">
-        <div class="brand-logo-icon" title="Presensi & Absensi Mobile">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 3H14.82C14.4 1.84 13.3 1 12 1C10.7 1 9.6 1.84 9.18 3H5C3.9 3 3 3.9 3 5V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V5C21 3.9 20.1 3 19 3Z" fill="rgba(255,255,255,0.18)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
-            <path d="M12 2C12.55 2 13 2.45 13 3V4H11V3C11 2.45 11.45 2 12 2Z" fill="#38bdf8"/>
-            <line x1="7" y1="8" x2="11" y2="8" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="7" y1="11" x2="9.5" y2="11" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M8 15.5L11 18.5L17 12" stroke="#38bdf8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+  <!-- Main Top Header -->
+  <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/10 px-4 py-3">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <!-- Attendance Clipboard Logo & App Name -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white flex-shrink-0">
+          <i class="fa-solid fa-clipboard-check text-xl"></i>
         </div>
         <div>
-          <span class="gradient-text-blue">GeoFace</span>
-          <span style="font-size:0.62rem; display:block; color:var(--text-muted); font-weight:500;">PRESENSI GITHUB</span>
+          <h1 class="text-base font-extrabold tracking-tight bg-gradient-to-r from-sky-400 to-indigo-300 bg-clip-text text-transparent">
+            GeoFace
+          </h1>
+          <p class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Presensi Mobile</p>
         </div>
       </div>
-      <div class="header-actions">
-        <button class="btn-icon" id="btnApiConfig" title="Konfigurasi URL Apps Script">
-          <i class="fa-solid fa-cloud" id="apiStatusIcon" style="color:var(--primary-light);"></i>
+
+      <!-- Action Buttons (API Config & User Info / Logout) -->
+      <div class="flex items-center gap-2">
+        <button id="btnOpenConfig" type="button" class="w-9 h-9 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-sky-400 hover:border-sky-500/50 flex items-center justify-center text-sm transition shadow-sm" title="Konfigurasi API Google Sheets">
+          <i class="fa-solid fa-cloud"></i>
         </button>
-        <button class="btn-icon" id="btnThemeToggle" title="Ganti Tema">
-          <i class="fa-solid fa-sun" id="themeIcon"></i>
+
+        <div id="userHeaderWrap" class="hidden flex items-center gap-2">
+          <button id="btnHeaderLogout" type="button" class="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 text-xs font-semibold flex items-center gap-1.5 transition" title="Keluar">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- View 1: Pre-Login Screen (Active by Default when Not Logged In) -->
+  <main id="viewLogin" class="tab-view active flex-1 max-w-md w-full mx-auto p-4 flex flex-col justify-center">
+    <div class="card-glass p-6 shadow-2xl relative overflow-hidden">
+      <!-- Background Ambient Glow -->
+      <div class="absolute -top-16 -right-16 w-36 h-36 bg-sky-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-16 -left-16 w-36 h-36 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Login Hero Badge -->
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 border border-sky-500/30 mx-auto flex items-center justify-center text-sky-400 text-2xl shadow-inner mb-3">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="text-xl font-bold text-slate-100">Autentikasi Presensi</h2>
+        <p class="text-xs text-slate-400 mt-1">Silakan masuk sesuai hak akses Anda</p>
+      </div>
+
+      <!-- Role Selector Tabs -->
+      <div class="grid grid-cols-2 p-1 bg-slate-900/90 rounded-xl border border-white/10 mb-5">
+        <button id="btnRoleStaff" type="button" class="py-2 text-xs font-bold rounded-lg transition text-slate-300 hover:text-white">
+          <i class="fa-solid fa-user mr-1.5"></i> Karyawan
         </button>
-        <button class="btn-icon" id="btnHeaderLogout" style="display:none; color:var(--danger);" title="Keluar / Logout">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <button id="btnRoleAdmin" type="button" class="py-2 text-xs font-bold rounded-lg transition text-slate-300 hover:text-white">
+          <i class="fa-solid fa-user-shield mr-1.5"></i> Admin
         </button>
       </div>
-    </header>
 
-    <!-- Banner Status Koneksi Backend -->
-    <div id="apiStatusBanner" class="api-status-banner">
-      <span id="apiStatusText"><i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan ke Apps Script...</span>
-      <span style="text-decoration:underline; font-weight:600;"><i class="fa-solid fa-gear"></i> Atur URL</span>
+      <!-- Login Form -->
+      <form id="formLoginPre" class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-xs">
+              <i class="fa-solid fa-at"></i>
+            </span>
+            <input type="text" id="loginUsername" required placeholder="Masukkan username" class="w-full bg-slate-900 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-xs">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="loginPassword" required placeholder="Masukkan kata sandi" class="w-full bg-slate-900 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition" />
+            <button type="button" id="btnTogglePassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 text-xs">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button id="btnSubmitLoginPre" type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-xs tracking-wide shadow-lg shadow-sky-500/25 hover:from-sky-400 hover:to-indigo-500 transition flex items-center justify-center gap-2 mt-2">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk Sekarang</span>
+        </button>
+      </form>
+
+      <!-- Default Credential Notice -->
+      <div class="mt-6 pt-4 border-t border-white/10 text-center">
+        <p class="text-[11px] text-slate-400">Akun bawaan default: <span class="text-sky-300 font-mono font-semibold">admin</span> / sandi: <span class="text-sky-300 font-mono font-semibold">123</span></p>
+      </div>
+    </div>
+  </main>
+
+  <!-- View 2: Attendance Dashboard (For Staff & Admin) -->
+  <main id="viewAttendance" class="tab-view max-w-md w-full mx-auto p-4 space-y-4">
+    <!-- User Welcome Bar & Clock -->
+    <div class="card-glass p-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500/40 border border-sky-500/40 flex items-center justify-center text-sky-300 font-bold text-sm shadow">
+          <span id="userAvatarText">U</span>
+        </div>
+        <div>
+          <h2 id="loggedUserName" class="text-xs font-bold text-slate-100">Nama Karyawan</h2>
+          <span id="loggedUserRole" class="inline-block px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">Staff</span>
+        </div>
+      </div>
+      <div class="text-right font-mono">
+        <div id="liveClock" class="text-sm font-extrabold text-sky-400">08:00:00</div>
+        <div id="liveDate" class="text-[10px] text-slate-400">Jumat, 18 Sep 2026</div>
+      </div>
     </div>
 
-    <!-- TAB 0: PRE-LOGIN VIEW (Pilihan Karyawan atau Admin) -->
-    <section id="viewLogin" class="tab-view active">
-      <div style="text-align:center; padding:12px 6px 18px 6px;">
-        <div style="width:64px; height:64px; border-radius:20px; background:linear-gradient(135deg, #0284c7, #2563eb); margin:0 auto 12px auto; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 25px var(--accent-glow);">
-          <i class="fa-solid fa-user-lock" style="font-size:1.8rem; color:#fff;"></i>
+    <!-- Live GPS & Distance Status Bar -->
+    <div class="card-glass p-4 space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 text-slate-300">
+          <i class="fa-solid fa-location-crosshairs text-sky-400"></i>
+          <span class="font-bold">Status Lokasi GPS</span>
         </div>
-        <div style="font-size:1.25rem; font-weight:800;" class="gradient-text-blue">Portal Presensi</div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Silakan login terlebih dahulu untuk melakukan presensi</div>
+        <span id="badgeRadiusStatus" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-white/10 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Mendeteksi...
+        </span>
       </div>
 
-      <!-- Pilihan Role Segmented Switcher -->
-      <div class="role-switcher">
-        <button type="button" id="btnRoleStaff" class="role-switcher-btn active">
-          <i class="fa-solid fa-user"></i> Karyawan
-        </button>
-        <button type="button" id="btnRoleAdmin" class="role-switcher-btn">
-          <i class="fa-solid fa-shield-halved"></i> Admin
-        </button>
-      </div>
-
-      <!-- Kartu Form Login -->
-      <div class="ui-card" style="padding:16px;">
-        <form id="formLoginPre" onsubmit="return false;">
-          <div class="form-group">
-            <label class="form-label" id="lblUsername">Username Karyawan</label>
-            <input type="text" id="loginUsername" class="input-ctrl" placeholder="Masukkan username karyawan" autocomplete="username">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <div style="position:relative;">
-              <input type="password" id="loginPassword" class="input-ctrl" placeholder="Password" autocomplete="current-password">
-              <button id="btnToggleLoginPwd" type="button" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-          </div>
-
-          <div id="loginRoleHint" style="font-size:0.72rem; color:var(--text-muted); margin-bottom:14px; background:var(--bg-dark); padding:8px 10px; border-radius:8px; border:1px solid var(--border-dark);">
-            Login Karyawan: Masukkan username & password Anda untuk melakukan presensi.
-          </div>
-
-          <button type="button" id="btnSubmitLoginPre" class="btn-action-primary">
-            <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Sekarang
+      <div class="bg-slate-900/80 p-2.5 rounded-xl border border-white/5 space-y-1">
+        <p id="empAddressText" class="text-[11px] text-slate-300 line-clamp-1">Mencari alamat lokasi terkini...</p>
+        <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+          <div><span class="text-slate-500">Lat:</span> <span id="empLatVal" class="text-slate-300">-2.983671</span></div>
+          <div><span class="text-slate-500">Lng:</span> <span id="empLngVal" class="text-slate-300">104.753254</span></div>
+          <button id="btnRefreshGPS" type="button" class="text-sky-400 hover:text-sky-300 font-sans font-bold flex items-center gap-1">
+            <i class="fa-solid fa-rotate-right"></i> Sinkron
           </button>
-        </form>
-      </div>
-
-      <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); padding:6px 12px;">
-        Default Admin: <strong style="color:#38bdf8;">admin</strong> | Password: <strong style="color:#38bdf8;">123</strong>
-      </div>
-    </section>
-
-    <!-- TAB 1: PRESENSI -->
-    <main id="viewAttendance" class="tab-view">
-      <!-- User Info Header -->
-      <div class="ui-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; margin-bottom:12px; background:linear-gradient(135deg, rgba(2,132,199,0.12), rgba(37,99,235,0.06)); border-color:rgba(56,189,248,0.3);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #0284c7, #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.9rem;">
-            <i class="fa-solid fa-user"></i>
-          </div>
-          <div>
-            <div style="font-weight:700; font-size:0.85rem;" id="loggedUserName">Karyawan</div>
-            <div style="font-size:0.68rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
-              <span id="loggedUserHandle">@username</span> &bull; 
-              <span id="loggedUserRoleBadge" class="badge badge-primary" style="padding:1px 6px; font-size:0.6rem;">Staff</span>
-            </div>
-          </div>
         </div>
-        <button id="btnLogoutSession" class="badge badge-danger" style="cursor:pointer; border:none; padding:5px 10px; font-size:0.7rem; display:flex; align-items:center; gap:4px;">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+      </div>
+    </div>
+
+    <!-- Camera Scanner Viewport -->
+    <div class="cam-viewport-wrapper">
+      <video id="videoPreview" class="cam-video-el" autoplay playsinline muted></video>
+      <canvas id="captureCanvas" class="hidden"></canvas>
+      
+      <!-- Scan overlay -->
+      <div class="cam-face-guide">
+        <div class="cam-scan-line"></div>
+      </div>
+
+      <!-- Distance Overlay Tag -->
+      <div class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[11px] font-mono text-sky-300 flex items-center gap-1.5 shadow-md">
+        <i class="fa-solid fa-ruler"></i>
+        <span id="camDistanceLabel">Jarak: -- m</span>
+      </div>
+
+      <!-- Retry Camera Button if Error -->
+      <button id="btnRetryCamera" type="button" class="hidden absolute inset-0 m-auto w-32 h-10 rounded-xl bg-slate-900/90 border border-sky-500 text-sky-300 text-xs font-bold items-center justify-center gap-2 shadow-2xl">
+        <i class="fa-solid fa-video"></i> Nyalakan Kamera
+      </button>
+    </div>
+
+    <!-- Attendance Trigger Action Buttons -->
+    <div class="grid grid-cols-2 gap-3">
+      <button id="btnAbsenMasuk" type="button" class="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs tracking-wider shadow-lg shadow-emerald-500/25 hover:from-emerald-400 hover:to-teal-500 active:scale-[0.98] transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-arrow-right-to-bracket text-sm"></i>
+        <span>Presensi Masuk</span>
+      </button>
+
+      <button id="btnAbsenPulang" type="button" class="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold text-xs tracking-wider shadow-lg shadow-rose-500/25 hover:from-rose-400 hover:to-pink-500 active:scale-[0.98] transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+        <span>Presensi Pulang</span>
+      </button>
+    </div>
+
+    <!-- Interactive Mini Map Card -->
+    <div class="card-glass p-3 space-y-2">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+          <i class="fa-solid fa-map-location-dot text-sky-400"></i>
+          <span>Peta Radius Presensi</span>
+        </div>
+        <span class="text-[10px] text-slate-400">Google Maps Jalan / Satelit</span>
+      </div>
+      <div id="empMiniMap" class="adv-map-box"></div>
+    </div>
+
+    <!-- Attendance History Logs -->
+    <div class="card-glass p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+          <span>Riwayat Presensi Terbaru</span>
+        </h3>
+        <button id="btnRefreshHistory" type="button" class="text-[11px] text-sky-400 hover:text-sky-300 font-bold">
+          Refresh
         </button>
       </div>
 
-      <div class="ui-card" style="display:flex; justify-content:space-between; align-items:center;">
+      <div id="attendanceList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+        <div class="text-center py-6 text-slate-500 text-xs">Belum ada riwayat tercatat hari ini.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- View 3: Admin Geotagging Map View (Admin Only) -->
+  <main id="viewAdminGeotag" class="tab-view max-w-md w-full mx-auto p-4 space-y-4">
+    <div class="card-glass p-4 space-y-3">
+      <div class="flex items-center justify-between">
         <div>
-          <div style="font-size:0.72rem; color:var(--text-muted);">Waktu Presensi</div>
-          <div id="liveClock" style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono); color:var(--primary-light);">08:00:00</div>
-          <div id="liveDate" style="font-size:0.7rem; color:var(--text-muted);">Memuat tanggal...</div>
+          <h2 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-location-dot text-rose-500"></i>
+            <span>Pengaturan Titik Kantor</span>
+          </h2>
+          <p class="text-[11px] text-slate-400">Geser pin merah untuk menentukan lokasi absensi</p>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:4px;">Radius Kantor</div>
-          <span id="badgeRadiusStatus" class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Dalam Radius</span>
-        </div>
+        <button id="btnSaveGeotag" type="button" class="px-3 py-1.5 rounded-xl bg-sky-500 text-white text-xs font-bold hover:bg-sky-400 transition flex items-center gap-1.5 shadow-md shadow-sky-500/25">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan
+        </button>
       </div>
 
-      <!-- Kamera Selfie -->
-      <div class="camera-wrapper">
-        <video id="faceVideo" autoplay playsinline muted></video>
-        <canvas id="faceCanvas" width="400" height="400"></canvas>
-        <div class="scanner-line"></div>
-        <div class="face-oval-guide"></div>
+      <!-- Advanced Interactive Map Container -->
+      <div class="relative">
+        <div id="adminGeotagMap" class="adv-map-box adv-map-box-lg"></div>
 
-        <div id="camFallback" style="display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; background:#070f26; text-align:center; padding:16px;">
-          <i class="fa-solid fa-camera-rotate" style="font-size:3rem; color:var(--primary-light); margin-bottom:8px;"></i>
-          <span style="font-size:0.8rem; font-weight:700;">Kamera Belum Aktif</span>
-          <span style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Izinkan akses kamera di browser HP Anda.</span>
-          <button id="btnRetryCamera" class="badge badge-primary" style="border:none; cursor:pointer; padding:6px 12px;">
-            <i class="fa-solid fa-rotate-right"></i> Aktifkan Kamera
+        <!-- Floating Quick Map Tools -->
+        <div class="absolute bottom-3 right-3 z-[400] flex flex-col gap-2">
+          <button id="btnSwitchTile" type="button" class="w-8 h-8 rounded-xl bg-slate-900/90 border border-white/20 text-slate-300 hover:text-sky-400 flex items-center justify-center text-xs shadow-lg" title="Ganti Tampilan Peta (Jalan / Satelit)">
+            <i class="fa-solid fa-layer-group"></i>
+          </button>
+          <button id="btnCenterOffice" type="button" class="w-8 h-8 rounded-xl bg-slate-900/90 border border-white/20 text-slate-300 hover:text-sky-400 flex items-center justify-center text-xs shadow-lg" title="Pusatkan ke Kantor">
+            <i class="fa-solid fa-crosshairs"></i>
+          </button>
+          <button id="btnSetCurrentAdminGPS" type="button" class="w-8 h-8 rounded-xl bg-slate-900/90 border border-white/20 text-slate-300 hover:text-emerald-400 flex items-center justify-center text-xs shadow-lg" title="Gunakan Lokasi GPS Saya Saat Ini">
+            <i class="fa-solid fa-location-arrow"></i>
           </button>
         </div>
-
-        <div class="camera-badge-time">
-          <span><i class="fa-solid fa-face-smile"></i> SCAN WAJAH</span>
-          <span id="camDistanceLabel">Jarak: -- m</span>
-        </div>
       </div>
 
-      <!-- Google Maps Mini GPS Karyawan -->
-      <div class="ui-card" style="padding:12px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-size:0.78rem; font-weight:700; display:flex; align-items:center; gap:6px;">
-            <i class="fa-brands fa-google" style="color:#38bdf8;"></i> Google Maps GPS
-          </span>
-          <button id="btnRefreshGPS" style="background:transparent; border:none; color:var(--primary-light); font-size:0.75rem; font-weight:600; cursor:pointer;">
-            <i class="fa-solid fa-rotate"></i> Refresh GPS
-          </button>
-        </div>
-        
-        <div id="empMiniMap" class="map-container-emp"></div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
-          <div style="background:var(--bg-dark); padding:6px 8px; border-radius:8px; border:1px solid var(--border-dark);">
-            <div style="font-size:0.62rem; color:var(--text-muted);">Latitude</div>
-            <div id="empLatVal" style="font-family:var(--font-mono); font-size:0.78rem; font-weight:600; color:#38bdf8;">-2.983671</div>
-          </div>
-          <div style="background:var(--bg-dark); padding:6px 8px; border-radius:8px; border:1px solid var(--border-dark);">
-            <div style="font-size:0.62rem; color:var(--text-muted);">Longitude</div>
-            <div id="empLngVal" style="font-family:var(--font-mono); font-size:0.78rem; font-weight:600; color:#38bdf8;">104.753254</div>
-          </div>
-        </div>
-
-        <div style="margin-top:8px; font-size:0.72rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
-          <i class="fa-solid fa-map-pin" style="color:#ef4444;"></i>
-          <span id="empAddressText" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Menyinkronkan lokasi kantor...</span>
-        </div>
-      </div>
-
-      <!-- Tombol Presensi -->
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <button id="btnAbsenMasuk" class="btn-action-primary">
-          <i class="fa-solid fa-right-to-bracket"></i> Presensi Masuk
-        </button>
-        <button id="btnAbsenPulang" class="btn-action-primary" style="background: linear-gradient(135deg, #0369a1, #1e3a8a);">
-          <i class="fa-solid fa-right-from-bracket"></i> Presensi Pulang
-        </button>
-      </div>
-
-      <div style="margin-top:18px;">
-        <div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; display:flex; justify-content:space-between;">
-          <span>Riwayat Presensi</span>
-          <span id="txtUserRoleBadge" class="badge badge-primary">Staff</span>
-        </div>
-        <div id="attendanceHistoryList"></div>
-      </div>
-    </main>
-
-    <!-- TAB 2: GEOTAGGING ADMIN -->
-    <section id="viewAdminGeotag" class="tab-view">
-      <div class="geo-ref-header">
-        <button class="btn-icon" style="border:none; background:transparent;" id="btnBackToHome">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <div class="geo-dropdown-manual">
-          <span>Google Geotag</span>
-        </div>
-        <button class="geo-btn-check" id="btnSaveGeotag" title="Simpan Lokasi Kantor">
-          <i class="fa-solid fa-check"></i>
-        </button>
-      </div>
-
-      <div class="geo-map-box">
-        <div id="adminGeotagMap"></div>
-        <div class="map-float-tool top-right">
-          <div class="map-round-btn"><i class="fa-solid fa-compass" style="color:#ef4444;"></i></div>
-        </div>
-        <div class="map-float-tool bottom-right">
-          <button class="map-round-btn" id="btnSwitchTile" title="Ganti Mode Satelit"><i class="fa-solid fa-layer-group"></i></button>
-          <button class="map-round-btn" id="btnCenterOffice" title="Pusatkan"><i class="fa-solid fa-crosshairs"></i></button>
-        </div>
-      </div>
-
-      <div class="geo-details-pane">
-        <div class="geo-field-label">Title</div>
-        <input type="text" id="geoInputTitle" class="geo-input-underline" value="Work">
-
-        <div class="geo-field-label" style="margin-top:10px;">GPS Coordinates</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <!-- Office Configuration Form Fields -->
+      <div class="space-y-3 pt-2">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <div style="font-size:0.68rem; color:var(--text-muted);">Latitude</div>
-            <div id="geoLatText" style="font-family:var(--font-mono); font-size:0.85rem; font-weight:600;">-2.983671</div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Latitude</label>
+            <div id="geoLatText" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-sky-300">-2.983671</div>
           </div>
           <div>
-            <div style="font-size:0.68rem; color:var(--text-muted);">Longitude</div>
-            <div id="geoLngText" style="font-family:var(--font-mono); font-size:0.85rem; font-weight:600;">104.753254</div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Longitude</label>
+            <div id="geoLngText" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-sky-300">104.753254</div>
           </div>
         </div>
 
-        <div class="geo-field-label" style="margin-top:6px;">Alamat & Radius Geofence</div>
-        <input type="text" id="geoLine1" class="geo-input-underline gray" placeholder="Nama Jalan / Gedung">
-        <input type="text" id="geoLine2" class="geo-input-underline gray" placeholder="Kecamatan & Kota">
-        <input type="text" id="geoLine3" class="geo-input-underline gray" placeholder="Provinsi">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Nama Kantor</label>
+            <input type="text" id="geoInputTitle" value="Kantor Utama" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Radius (Meter)</label>
+            <input type="number" id="geoRadiusMeters" value="100" min="10" max="5000" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
 
-        <div style="font-size:0.75rem; font-weight:700; margin-top:4px;">Radius Toleransi (Meter)</div>
-        <input type="number" id="geoRadiusMeters" class="geo-input-underline" value="100">
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Alamat Kantor</label>
+          <input type="text" id="geoLine1" placeholder="Nama Jalan / Gedung" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500 mb-1.5" />
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="geoLine2" placeholder="Kecamatan / Kota" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500" />
+            <input type="text" id="geoLine3" placeholder="Provinsi" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
       </div>
+    </div>
+  </main>
 
-      <button id="btnSetCurrentAdminGPS" class="btn-action-secondary">
-        <i class="fa-solid fa-location-dot" style="color:var(--primary-light);"></i> Gunakan Koordinat GPS Saya Saat Ini
-      </button>
-    </section>
-
-    <!-- TAB 3: ADMIN MANAGEMENT -->
-    <section id="viewAdminManage" class="tab-view">
-      <div style="font-size:1.05rem; font-weight:800; margin-bottom:12px;">
-        <span class="gradient-text-blue">Admin Control Center</span>
-      </div>
-
-      <div class="ui-card">
-        <div style="font-size:0.82rem; font-weight:700; margin-bottom:10px;"><i class="fa-solid fa-clock" style="color:var(--primary-light);"></i> Pengaturan Jam Kerja</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <div class="form-group">
-            <label class="form-label">Jam Masuk</label>
-            <input type="time" id="cfgInTime" class="input-ctrl" value="08:00">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Jam Pulang</label>
-            <input type="time" id="cfgOutTime" class="input-ctrl" value="17:00">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Toleransi Terlambat (Menit)</label>
-          <input type="number" id="cfgLateTol" class="input-ctrl" value="15">
-        </div>
-        <button id="btnSaveSchedule" class="btn-action-primary" style="padding:10px; font-size:0.82rem;">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Jam Kerja
+  <!-- View 4: Admin Control Center (Admin Only) -->
+  <main id="viewAdminManage" class="tab-view max-w-md w-full mx-auto p-4 space-y-4">
+    <!-- Work Schedule Settings -->
+    <div class="card-glass p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-clock text-amber-400"></i>
+          <span>Jadwal Jam Kerja</span>
+        </h2>
+        <button id="btnSaveSchedule" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition">
+          Simpan Jadwal
         </button>
       </div>
 
-      <div class="ui-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-size:0.82rem; font-weight:700;"><i class="fa-solid fa-users" style="color:var(--primary-light);"></i> Data Karyawan</div>
-          <button id="btnOpenAddUserModal" class="badge badge-primary" style="border:none; cursor:pointer; padding:5px 10px;">
-            <i class="fa-solid fa-user-plus"></i> Tambah
-          </button>
+      <div class="grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Jam Masuk</label>
+          <input type="time" id="schedInTime" value="08:00" class="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-slate-100" />
         </div>
-        <div id="userCrudListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Jam Pulang</label>
+          <input type="time" id="schedOutTime" value="17:00" class="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-slate-100" />
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Toleransi (Mnt)</label>
+          <input type="number" id="schedTolerance" value="15" class="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-slate-100" />
+        </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Bottom Nav Bar -->
-    <nav class="app-bottom-nav" id="appBottomNav" style="display:none;">
-      <button class="nav-btn active" id="navBtnAttendance" data-tab="viewAttendance">
-        <i class="fa-solid fa-camera"></i>
-        <span>Presensi</span>
-      </button>
-      <button class="nav-btn" id="navBtnGeotag" data-tab="viewAdminGeotag" style="display:none;">
-        <i class="fa-solid fa-map-location-dot"></i>
-        <span>Geotagging</span>
-      </button>
-      <button class="nav-btn" id="navBtnAdmin" data-tab="viewAdminManage" style="display:none;">
-        <i class="fa-solid fa-sliders"></i>
-        <span>Admin</span>
-      </button>
-    </nav>
-  </div>
+    <!-- User Management Card -->
+    <div class="card-glass p-4 space-y-3">
+      <h2 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+        <i class="fa-solid fa-users text-sky-400"></i>
+        <span>Kelola Data Karyawan</span>
+      </h2>
 
-  <!-- Modal Penampil Foto Presensi (In-App Lightbox) -->
-  <div id="modalPhotoViewer" class="modal-backdrop">
-    <div class="modal-box" style="max-width: 400px; padding: 16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:800; font-size:1rem; display:flex; align-items:center; gap:8px;">
-          <i class="fa-solid fa-camera-retro" style="color:var(--primary-light);"></i>
-          <span class="gradient-text-blue">Hasil Scan Wajah</span>
+      <!-- Add New User Form -->
+      <form id="formAddUser" class="space-y-2 p-3 bg-slate-900/90 rounded-xl border border-white/10">
+        <div class="text-[11px] font-bold text-slate-300">Tambah Akun Karyawan Baru</div>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="newUsername" required placeholder="Username" class="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100" />
+          <input type="password" id="newPassword" required placeholder="Password" class="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100" />
         </div>
-        <button class="btn-icon" id="btnClosePhotoViewer" style="width:30px; height:30px;">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="newFullName" required placeholder="Nama Lengkap" class="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100" />
+          <select id="newRole" class="bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-100">
+            <option value="Staff">Staff</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" class="w-full py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-white font-bold text-xs transition">
+          + Daftarkan Karyawan
+        </button>
+      </form>
+
+      <!-- Users Table -->
+      <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1" id="userListTable">
+        <div class="text-center py-4 text-slate-500 text-xs">Memuat daftar akun...</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal 1: Photo Lightbox Preview Modal -->
+  <div id="modalPhotoLightbox" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="card-glass max-w-sm w-full p-4 space-y-3 relative">
+      <div class="flex items-center justify-between">
+        <h3 id="lightboxTitle" class="text-xs font-bold text-slate-200">Foto Selfie Presensi</h3>
+        <button id="btnCloseLightbox" type="button" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <div class="photo-modal-view-wrap">
-        <img id="viewerPhotoImg" src="" alt="Foto Presensi" onerror="this.onerror=null; this.src='https://placehold.co/400x400/0f172a/38bdf8?text=Foto+Presensi';">
-        <div id="viewerPhotoBadge" style="position:absolute; top:10px; right:10px;">
-          <span class="badge badge-success">Masuk</span>
-        </div>
+      <div class="w-full h-64 rounded-xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center">
+        <img id="lightboxImage" src="" alt="Foto Selfie" class="w-full h-full object-cover" />
       </div>
 
-      <div style="background:var(--surface-card); border:1px solid var(--border-dark); border-radius:12px; padding:12px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span id="viewerUserName" style="font-weight:700; font-size:0.88rem;">Karyawan</span>
-          <span id="viewerStatusBadge" class="badge badge-success">Tepat Waktu</span>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.72rem; color:var(--text-muted);">
-          <div><i class="fa-solid fa-clock" style="color:var(--primary-light); margin-right:4px;"></i> <span id="viewerTimeText">08:00 WIB</span></div>
-          <div><i class="fa-solid fa-location-dot" style="color:#ef4444; margin-right:4px;"></i> <span id="viewerDistText">Jarak: 18m</span></div>
-        </div>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <a id="btnViewerDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-action-secondary" style="margin-top:0; text-decoration:none; text-align:center;">
-          <i class="fa-brands fa-google-drive" style="color:#38bdf8;"></i> Buka Drive
+      <div class="flex items-center justify-between text-[11px] text-slate-400">
+        <span id="lightboxMeta">--:-- WIB</span>
+        <a id="lightboxDriveLink" href="#" target="_blank" class="text-sky-400 hover:underline flex items-center gap-1">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka di Drive
         </a>
-        <button id="btnDismissPhotoViewer" class="btn-action-primary">
-          <i class="fa-solid fa-check"></i> Tutup
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Konfigurasi URL Apps Script -->
-  <div id="modalApiConfig" class="modal-backdrop">
-    <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:800; font-size:1.05rem;"><span class="gradient-text-blue">Koneksi Backend</span></div>
-        <button class="btn-icon" id="btnCloseApiModal" style="width:30px; height:30px;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">
-        Tempelkan URL Web App dari hasil deployment Google Apps Script Anda (akhiran <code>/exec</code>).
-      </p>
-      <div class="form-group">
-        <label class="form-label">URL Web App Apps Script</label>
-        <input type="url" id="inputGasUrl" class="input-ctrl" placeholder="https://script.google.com/macros/s/.../exec">
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-        <button id="btnTestApi" class="btn-action-secondary" style="margin-top:0;">
-          <i class="fa-solid fa-signal"></i> Tes Koneksi
-        </button>
-        <button id="btnSaveApiUrl" class="btn-action-primary">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan URL
+  <!-- Modal 2: Google Apps Script Web App URL Config Modal -->
+  <div id="modalGasConfig" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="card-glass max-w-sm w-full p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-link text-sky-400"></i>
+          <span>Koneksi Google Apps Script</span>
+        </h3>
+        <button id="btnCloseGasConfig" type="button" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-    </div>
-  </div>
 
-  <!-- Modal Login -->
-  <div id="modalAuth" class="modal-backdrop">
-    <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:800; font-size:1.05rem;"><span class="gradient-text-blue">Masuk Akun</span></div>
-        <button class="btn-icon" id="btnCloseAuthModal" style="width:30px; height:30px;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Username</label>
-        <input type="text" id="authUsername" class="input-ctrl" placeholder="admin / nama karyawan">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <div style="position:relative;">
-          <input type="password" id="authPassword" class="input-ctrl" placeholder="Password">
-          <button id="btnTogglePwd" type="button" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
-            <i class="fa-solid fa-eye"></i>
-          </button>
-        </div>
-      </div>
-      <button id="btnSubmitLogin" class="btn-action-primary" style="margin-top:8px;">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Sekarang
-      </button>
-      <div style="margin-top:10px; font-size:0.72rem; text-align:center; color:var(--text-muted);">
-        Default Admin: <strong>admin</strong> | Password: <strong>123</strong>
-      </div>
-    </div>
-  </div>
+      <p class="text-xs text-slate-400">Tempelkan URL Web App Google Apps Script hasil deploy (/exec):</p>
+      <textarea id="inputGasUrl" rows="3" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-[11px] font-mono text-slate-200 focus:outline-none focus:border-sky-500"></textarea>
 
-  <!-- Modal Tambah User -->
-  <div id="modalAddUser" class="modal-backdrop">
-    <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:800; font-size:1rem;">Tambah Karyawan Baru</div>
-        <button class="btn-icon" id="btnCloseAddUser" style="width:30px; height:30px;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nama Lengkap</label>
-        <input type="text" id="newFullName" class="input-ctrl" placeholder="Nama Karyawan">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Username</label>
-        <input type="text" id="newUsername" class="input-ctrl" placeholder="username">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="newPassword" class="input-ctrl" value="123456">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Role</label>
-        <select id="newRole" class="input-ctrl">
-          <option value="Staff">Staff / Karyawan</option>
-          <option value="Admin">Admin</option>
-        </select>
-      </div>
-      <button id="btnSaveNewUser" class="btn-action-primary" style="margin-top:6px;">
-        <i class="fa-solid fa-check"></i> Simpan Karyawan
+      <button id="btnSaveGasUrl" type="button" class="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs rounded-xl shadow-md transition">
+        Simpan URL
       </button>
     </div>
   </div>
 
-  <!-- Modal Konfirmasi Universal (Pengganti confirm) -->
-  <div id="modalConfirm" class="modal-backdrop">
-    <div class="modal-box" style="max-width:340px;">
-      <div style="font-weight:800; font-size:1rem; margin-bottom:8px;" id="confirmTitle">Konfirmasi</div>
-      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;" id="confirmMsg">Apakah Anda yakin?</p>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <button id="btnCancelConfirm" class="btn-action-secondary" style="margin-top:0;">Batal</button>
-        <button id="btnOkConfirm" class="btn-action-primary">Ya, Lanjutkan</button>
+  <!-- Modal 3: Custom Confirmation Dialog (No alert/confirm used) -->
+  <div id="modalConfirm" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="card-glass max-w-xs w-full p-5 space-y-3 text-center">
+      <div class="w-12 h-12 rounded-full bg-red-500/20 text-red-400 mx-auto flex items-center justify-center text-lg">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 id="confirmTitle" class="text-sm font-bold text-slate-100">Konfirmasi Tindakan</h3>
+      <p id="confirmMessage" class="text-xs text-slate-400">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button id="btnConfirmCancel" type="button" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">
+          Batal
+        </button>
+        <button id="btnConfirmOk" type="button" class="py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition">
+          Lanjutkan
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Floating Toast Message Box (Pengganti alert) -->
-  <div id="toastNotice">
-    <i class="fa-solid fa-circle-info" id="toastIcon" style="color:var(--primary-light);"></i>
-    <span id="toastMsg">Informasi</span>
-  </div>
+  <!-- Bottom Navigation Bar (Hidden when logged out, visible after login) -->
+  <nav id="appBottomNav" class="hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-2xl border-t border-white/10 py-2 px-6">
+    <div class="max-w-md mx-auto flex items-center justify-around">
+      <button type="button" class="nav-btn active flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 transition" data-tab="viewAttendance">
+        <i class="fa-solid fa-camera text-base"></i>
+        <span class="text-[10px] font-bold">Presensi</span>
+      </button>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+      <button id="navBtnGeotag" type="button" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 transition" data-tab="viewAdminGeotag">
+        <i class="fa-solid fa-map-location-dot text-base"></i>
+        <span class="text-[10px] font-bold">Geotagging</span>
+      </button>
+
+      <button id="navBtnAdmin" type="button" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 transition" data-tab="viewAdminManage">
+        <i class="fa-solid fa-sliders text-base"></i>
+        <span class="text-[10px] font-bold">Admin</span>
+      </button>
+    </div>
+  </nav>
 
   <script>
     // URL Deployment default Google Apps Script Web App
@@ -1110,134 +811,36 @@
       return (saved && saved.startsWith('http')) ? saved : DEFAULT_GAS_URL;
     }
 
-    // Pemanggilan API murni via fetch sederhana (text/plain) untuk menghindari isu CORS pada Google Apps Script
+    // Pemanggilan API REST murni (text/plain) agar ramah CORS pada Google Apps Script
     async function apiCall(action, payload = {}) {
       const url = getApiUrl();
-      payload.action = action;
-
-      if (url && url.startsWith('http')) {
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-          });
-          const json = await res.json();
-          updateApiBanner(true);
-          return json;
-        } catch (e) {
-          updateApiBanner(false);
-          return { success: false, message: 'Gagal komunikasi ke Apps Script: ' + e.message };
-        }
+      const bodyData = JSON.stringify({ action: action, ...payload });
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: bodyData
+        });
+        return await res.json();
+      } catch (err) {
+        console.error('API Call Error:', err);
+        return { success: false, message: 'Gagal terhubung ke Google Apps Script: ' + err.message };
       }
-
-      // Mode Offline / Simulasi Lokal jika belum memasukkan URL
-      updateApiBanner(false);
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          if (action === 'login') {
-            const users = JSON.parse(localStorage.getItem('geoface_mock_users') || '[]');
-            if (users.length === 0) {
-              users.push({ userId: 'USR-1', fullName: 'Administrator Utama', username: 'admin', role: 'Admin' });
-              users.push({ userId: 'USR-2', fullName: 'Karyawan Demo', username: 'karyawan', role: 'Staff' });
-              localStorage.setItem('geoface_mock_users', JSON.stringify(users));
-            }
-            const found = users.find(u => u.username.toLowerCase() === (payload.username || '').toLowerCase());
-            if (found) {
-              if (payload.role && payload.role.toLowerCase() === 'admin' && found.role.toLowerCase() !== 'admin') {
-                resolve({ success: false, message: 'Akun Anda bukan Administrator. Silakan pilih tab Karyawan.' });
-                return;
-              }
-              if (payload.role && (payload.role.toLowerCase() === 'staff' || payload.role.toLowerCase() === 'karyawan') && found.role.toLowerCase() === 'admin') {
-                resolve({ success: false, message: 'Akun ini adalah Administrator. Silakan pilih tab Admin.' });
-                return;
-              }
-              resolve({
-                success: true,
-                message: 'Login berhasil.',
-                user: {
-                  userId: found.userId,
-                  username: found.username,
-                  fullName: found.fullName,
-                  role: found.role,
-                  sessionToken: 'mock-' + Date.now()
-                }
-              });
-            } else {
-              resolve({ success: false, message: 'Username atau password tidak ditemukan.' });
-            }
-          } else if (action === 'getOfficeConfig') {
-            const saved = localStorage.getItem('geoface_mock_office');
-            resolve({
-              success: true,
-              data: saved ? JSON.parse(saved) : {
-                title: 'Work',
-                lat: -2.983671,
-                lng: 104.753254,
-                radius: 100,
-                line1: 'Jl. Jenderal Sudirman No. 45',
-                line2: 'Ilir Timur I, Palembang',
-                line3: 'Sumatera Selatan'
-              }
-            });
-          } else if (action === 'saveOfficeConfig') {
-            localStorage.setItem('geoface_mock_office', JSON.stringify(payload));
-            resolve({ success: true, message: 'Lokasi kantor tersimpan lokal.' });
-          } else if (action === 'getAttendanceReport') {
-            const history = JSON.parse(localStorage.getItem('geoface_mock_history') || '[]');
-            if (history.length === 0) {
-              history.push({ id: 'ATT-1', type: 'Masuk', time: '07:55 WIB', distance: 18, status: 'Tepat Waktu', photoUrl: '' });
-            }
-            resolve({ success: true, data: history });
-          } else if (action === 'recordAttendance') {
-            const history = JSON.parse(localStorage.getItem('geoface_mock_history') || '[]');
-            const newRecord = {
-              id: 'ATT-' + Date.now(),
-              username: payload.username,
-              fullName: payload.fullName,
-              type: payload.type,
-              time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-              distance: payload.distance,
-              status: 'Tepat Waktu',
-              photoUrl: payload.facePhoto || ''
-            };
-            history.unshift(newRecord);
-            localStorage.setItem('geoface_mock_history', JSON.stringify(history));
-            resolve({ success: true, data: newRecord });
-          } else if (action === 'getUserList') {
-            const users = JSON.parse(localStorage.getItem('geoface_mock_users') || '[]');
-            if (users.length === 0) {
-              users.push({ userId: 'USR-1', fullName: 'Administrator Utama', username: 'admin', role: 'Admin' });
-              users.push({ userId: 'USR-2', fullName: 'Karyawan Demo', username: 'karyawan', role: 'Staff' });
-              localStorage.setItem('geoface_mock_users', JSON.stringify(users));
-            }
-            resolve({ success: true, data: users });
-          } else if (action === 'addUser') {
-            const users = JSON.parse(localStorage.getItem('geoface_mock_users') || '[]');
-            users.push({ userId: 'USR-' + Date.now(), fullName: payload.fullName, username: payload.username, role: payload.role });
-            localStorage.setItem('geoface_mock_users', JSON.stringify(users));
-            resolve({ success: true, message: 'Karyawan tersimpan lokal.' });
-          } else if (action === 'deleteUser') {
-            let users = JSON.parse(localStorage.getItem('geoface_mock_users') || '[]');
-            users = users.filter(u => u.userId !== payload.userId);
-            localStorage.setItem('geoface_mock_users', JSON.stringify(users));
-            resolve({ success: true, message: 'Karyawan dihapus lokal.' });
-          } else {
-            resolve({ success: true, message: 'Aksi diproses lokal.' });
-          }
-        }, 150);
-      });
     }
 
-    // Status Autentikasi Pengguna (null secara bawaan sebelum login)
+    // State Aplikasi
     let currentSession = JSON.parse(localStorage.getItem('geoface_session') || 'null');
-    let selectedLoginRole = 'Staff'; // Default pilihan role login: 'Staff' atau 'Admin'
+    let selectedLoginRole = 'Staff'; // 'Staff' atau 'Admin'
+    let mediaStream = null;
+    let confirmCallback = null;
+    let isCameraStarting = false;
+    let cameraRetryCount = 0;
 
     let officeConfig = {
       lat: -2.983671,
       lng: 104.753254,
       radius: 100,
-      title: 'Work',
+      title: 'Kantor Utama',
       line1: 'Jl. Jenderal Sudirman No. 45',
       line2: 'Ilir Timur I, Palembang',
       line3: 'Sumatera Selatan'
@@ -1245,11 +848,12 @@
 
     let empPosition = { lat: -2.983671, lng: 104.753254 };
     let currentDistanceToOffice = 18;
-    let empMap = null, empMarker = null, empRadiusCircle = null;
-    let adminMap = null, adminMarker = null, adminTileLayer = null;
+
+    // Advanced Map Instances
+    let empAdvancedMap = null;
+    let adminAdvancedMap = null;
     let currentTileMode = 'streets';
 
-    // Google Maps Tile Servers
     const GOOGLE_TILE_SERVERS = {
       streets: {
         url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
@@ -1263,128 +867,412 @@
       }
     };
 
-    function showToast(msg, isError = false) {
-      const toast = document.getElementById('toastNotice');
-      const icon = document.getElementById('toastIcon');
-      document.getElementById('toastMsg').innerText = msg;
-      icon.className = isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
-      icon.style.color = isError ? 'var(--danger)' : 'var(--primary-light)';
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3200);
-    }
+    /**
+     * AdvancedMap Class
+     * Mendukung: center, zoom, markers, polygons, circles,
+     * onMarkerClick, onMapClick, enableSearch, enableControls
+     */
+    class AdvancedMap {
+      constructor(containerId, options = {}) {
+        this.containerId = containerId;
+        this.container = document.getElementById(containerId);
+        if (!this.container) return;
 
-    let confirmCallback = null;
-    function openConfirm(title, msg, onOk) {
-      document.getElementById('confirmTitle').innerText = title;
-      document.getElementById('confirmMsg').innerText = msg;
-      confirmCallback = onOk;
-      document.getElementById('modalConfirm').style.display = 'flex';
-    }
-    document.getElementById('btnCancelConfirm').addEventListener('click', () => {
-      document.getElementById('modalConfirm').style.display = 'none';
-      confirmCallback = null;
-    });
-    document.getElementById('btnOkConfirm').addEventListener('click', () => {
-      document.getElementById('modalConfirm').style.display = 'none';
-      if (confirmCallback) confirmCallback();
-    });
+        this.center = options.center || [-2.983671, 104.753254];
+        this.zoom = options.zoom || 16;
+        this.enableSearch = options.enableSearch ?? false;
+        this.enableControls = options.enableControls ?? true;
+        this.onMarkerClick = options.onMarkerClick || null;
+        this.onMapClick = options.onMapClick || null;
 
-    function updateApiBanner(isConnected) {
-      const banner = document.getElementById('apiStatusBanner');
-      const text = document.getElementById('apiStatusText');
-      const icon = document.getElementById('apiStatusIcon');
-      const url = getApiUrl();
+        this.markersLayerGroup = L.layerGroup();
+        this.polygonsLayerGroup = L.layerGroup();
+        this.circlesLayerGroup = L.layerGroup();
 
-      if (!url) {
-        banner.className = 'api-status-banner offline';
-        text.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Backend Apps Script belum disetel.';
-        icon.style.color = 'var(--warning)';
-      } else if (isConnected) {
-        banner.className = 'api-status-banner';
-        text.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Terhubung ke Google Apps Script.';
-        icon.style.color = 'var(--success)';
-      } else {
-        banner.className = 'api-status-banner offline';
-        text.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i> Terputus dari Apps Script. Cek URL / Izin deployment.';
-        icon.style.color = 'var(--danger)';
+        this.initMap();
+        if (this.enableSearch) this.mountSearchBar();
+
+        if (options.markers) this.setMarkers(options.markers);
+        if (options.polygons) this.setPolygons(options.polygons);
+        if (options.circles) this.setCircles(options.circles);
+      }
+
+      initMap() {
+        this.map = L.map(this.containerId, {
+          zoomControl: false,
+          attributionControl: false
+        }).setView(this.center, this.zoom);
+
+        this.tileLayer = L.tileLayer(GOOGLE_TILE_SERVERS[currentTileMode].url, {
+          subdomains: GOOGLE_TILE_SERVERS[currentTileMode].subdomains,
+          maxZoom: GOOGLE_TILE_SERVERS[currentTileMode].maxZoom
+        }).addTo(this.map);
+
+        this.circlesLayerGroup.addTo(this.map);
+        this.polygonsLayerGroup.addTo(this.map);
+        this.markersLayerGroup.addTo(this.map);
+
+        this.map.on('click', (e) => {
+          if (this.onMapClick) this.onMapClick(e.latlng);
+        });
+      }
+
+      setTileMode(mode) {
+        if (!GOOGLE_TILE_SERVERS[mode]) return;
+        currentTileMode = mode;
+        if (this.tileLayer) this.map.removeLayer(this.tileLayer);
+        const s = GOOGLE_TILE_SERVERS[mode];
+        this.tileLayer = L.tileLayer(s.url, { subdomains: s.subdomains, maxZoom: s.maxZoom }).addTo(this.map);
+      }
+
+      createPopupHtml(popupData, latlng) {
+        if (!popupData) return '';
+        if (typeof popupData === 'string') {
+          return `<div class="adv-popup-body"><p class="adv-popup-desc" style="margin:0; font-weight:600;">${popupData}</p></div>`;
+        }
+
+        const title = popupData.title || 'Informasi Titik';
+        const content = popupData.content || '';
+        const image = popupData.image || '';
+        const badge = popupData.badge ? `<span style="background:#0284c7; color:#fff; font-size:0.6rem; padding:2px 6px; border-radius:6px;">${popupData.badge}</span>` : '';
+        const coords = latlng ? `${latlng[0].toFixed(5)}, ${latlng[1].toFixed(5)}` : '';
+
+        return `
+          <div class="adv-popup-card">
+            ${image ? `<img src="${image}" class="adv-popup-image" alt="${title}" onerror="this.style.display='none'">` : ''}
+            <div class="adv-popup-body">
+              <div class="adv-popup-title">
+                <span>${title}</span>
+                ${badge}
+              </div>
+              ${content ? `<p class="adv-popup-desc">${content}</p>` : ''}
+              ${coords ? `<div class="adv-popup-coords"><i class="fa-solid fa-location-dot"></i> ${coords}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      createMarkerIcon(color = 'blue', size = 'medium', hasPulse = false) {
+        const sizeClass = `adv-size-${size}`;
+        const colorClass = `adv-color-${color}`;
+        const iconSymbol = (color === 'red') ? 'fa-building' : (color === 'green' ? 'fa-user-check' : 'fa-location-dot');
+
+        return L.divIcon({
+          className: 'adv-custom-icon',
+          html: `
+            <div class="adv-marker-wrap ${sizeClass}">
+              ${hasPulse ? '<div class="adv-pulse-ring"></div>' : ''}
+              <div class="adv-marker-pin ${colorClass}">
+                <i class="fa-solid ${iconSymbol} adv-marker-icon"></i>
+              </div>
+            </div>
+          `,
+          iconSize: size === 'large' ? [38, 38] : (size === 'small' ? [22, 22] : [30, 30]),
+          iconAnchor: size === 'large' ? [19, 38] : (size === 'small' ? [11, 22] : [15, 30]),
+          popupAnchor: [0, size === 'large' ? -36 : -28]
+        });
+      }
+
+      setMarkers(markers = []) {
+        this.markersLayerGroup.clearLayers();
+        markers.forEach(m => {
+          const icon = this.createMarkerIcon(m.color || 'blue', m.size || 'medium', m.pulse || false);
+          const marker = L.marker(m.position, {
+            icon: icon,
+            draggable: m.draggable || false
+          });
+
+          if (m.popup) {
+            const popupHtml = this.createPopupHtml(m.popup, m.position);
+            marker.bindPopup(popupHtml, { maxWidth: 240, closeButton: true });
+          }
+
+          marker.on('click', () => {
+            if (this.onMarkerClick) this.onMarkerClick(m);
+          });
+
+          if (m.onDragEnd) {
+            marker.on('dragend', (e) => m.onDragEnd(e.target.getLatLng()));
+          }
+
+          this.markersLayerGroup.addLayer(marker);
+        });
+      }
+
+      setPolygons(polygons = []) {
+        this.polygonsLayerGroup.clearLayers();
+        polygons.forEach(p => {
+          const poly = L.polygon(p.positions, {
+            color: p.style?.color || '#0284c7',
+            weight: p.style?.weight || 2,
+            fillOpacity: p.style?.fillOpacity ?? 0.25,
+            dashArray: p.style?.dashArray || null
+          });
+
+          if (p.popup) {
+            poly.bindPopup(this.createPopupHtml(p.popup), { maxWidth: 220 });
+          }
+
+          this.polygonsLayerGroup.addLayer(poly);
+        });
+      }
+
+      setCircles(circles = []) {
+        this.circlesLayerGroup.clearLayers();
+        circles.forEach(c => {
+          const circ = L.circle(c.center, {
+            radius: c.radius || 100,
+            color: c.style?.color || '#0284c7',
+            weight: c.style?.weight || 1.5,
+            fillColor: c.style?.color || '#38bdf8',
+            fillOpacity: c.style?.fillOpacity ?? 0.2
+          });
+
+          if (c.popup) {
+            circ.bindPopup(this.createPopupHtml(c.popup), { maxWidth: 220 });
+          }
+
+          this.circlesLayerGroup.addLayer(circ);
+        });
+      }
+
+      mountSearchBar() {
+        const bar = document.createElement('div');
+        bar.className = 'map-search-bar';
+        bar.innerHTML = `
+          <i class="fa-solid fa-magnifying-glass" style="font-size:0.75rem; color:#38bdf8; margin-left:4px;"></i>
+          <input type="text" class="map-search-input" placeholder="Cari gedung, jalan, atau lokasi...">
+          <button type="button" class="map-search-btn" title="Cari"><i class="fa-solid fa-arrow-right"></i></button>
+        `;
+
+        const input = bar.querySelector('.map-search-input');
+        const btn = bar.querySelector('.map-search-btn');
+
+        const doSearch = async () => {
+          const q = input.value.trim();
+          if (!q) return;
+          showToast(`Mencari "${q}" di peta...`);
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const lat = parseFloat(data[0].lat);
+              const lon = parseFloat(data[0].lon);
+              this.map.flyTo([lat, lon], 17);
+              if (this.onMapClick) this.onMapClick({ lat, lng: lon });
+              showToast(`Ditemukan: ${data[0].display_name.split(',')[0]}`);
+            } else {
+              showToast('Lokasi tidak ditemukan.', true);
+            }
+          } catch (e) {
+            showToast('Gagal memuat pencarian geocoding.', true);
+          }
+        };
+
+        btn.addEventListener('click', (e) => { e.stopPropagation(); doSearch(); });
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+        this.container.appendChild(bar);
+      }
+
+      flyTo(center, zoom = 17) {
+        if (this.map) this.map.flyTo(center, zoom);
+      }
+
+      invalidateSize() {
+        if (this.map) this.map.invalidateSize();
       }
     }
 
-    // Mengelola Tampilan Antarmuka Berdasarkan Status Login
+    function showToast(msg, isError = false) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.innerHTML = `
+        <i class="fa-solid ${isError ? 'fa-circle-xmark text-red-400' : 'fa-circle-check text-emerald-400'} text-base"></i>
+        <span>${msg}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function showConfirmModal(title, msg, onConfirm) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = msg;
+      confirmCallback = onConfirm;
+      const m = document.getElementById('modalConfirm');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    document.getElementById('btnConfirmCancel')?.addEventListener('click', () => {
+      const m = document.getElementById('modalConfirm');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      confirmCallback = null;
+    });
+
+    document.getElementById('btnConfirmOk')?.addEventListener('click', () => {
+      const m = document.getElementById('modalConfirm');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      if (typeof confirmCallback === 'function') confirmCallback();
+      confirmCallback = null;
+    });
+
     function checkAuthState() {
       const viewLogin = document.getElementById('viewLogin');
-      const viewAttendance = document.getElementById('viewAttendance');
-      const viewAdminGeotag = document.getElementById('viewAdminGeotag');
-      const viewAdminManage = document.getElementById('viewAdminManage');
       const appBottomNav = document.getElementById('appBottomNav');
-      const btnHeaderLogout = document.getElementById('btnHeaderLogout');
-      const navBtnGeotag = document.getElementById('navBtnGeotag');
-      const navBtnAdmin = document.getElementById('navBtnAdmin');
+      const userHeaderWrap = document.getElementById('userHeaderWrap');
 
       if (!currentSession) {
-        // PENGGUNA BELUM LOGIN: Tampilkan halaman Pre-Login saja
-        stopCamera();
+        // Belum login: Tampilkan layar pre-login, sembunyikan navigasi
+        document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
         if (viewLogin) viewLogin.classList.add('active');
-        if (viewAttendance) viewAttendance.classList.remove('active');
-        if (viewAdminGeotag) viewAdminGeotag.classList.remove('active');
-        if (viewAdminManage) viewAdminManage.classList.remove('active');
-        if (appBottomNav) appBottomNav.style.display = 'none';
-        if (btnHeaderLogout) btnHeaderLogout.style.display = 'none';
+        if (appBottomNav) appBottomNav.classList.add('hidden');
+        if (userHeaderWrap) userHeaderWrap.classList.add('hidden');
+        stopCamera();
       } else {
-        // PENGGUNA SUDAH LOGIN: Buka antarmuka presensi
+        // Sudah login: Tampilkan dashboard sesuai role
         if (viewLogin) viewLogin.classList.remove('active');
-        if (viewAttendance) viewAttendance.classList.add('active');
-        if (appBottomNav) appBottomNav.style.display = 'flex';
-        if (btnHeaderLogout) btnHeaderLogout.style.display = 'flex';
+        if (appBottomNav) appBottomNav.classList.remove('hidden');
+        if (userHeaderWrap) userHeaderWrap.classList.remove('hidden');
 
-        // Tampilkan info profil di header presensi
-        const nameEl = document.getElementById('loggedUserName');
-        if (nameEl) nameEl.innerText = currentSession.fullName || currentSession.username;
-        const handleEl = document.getElementById('loggedUserHandle');
-        if (handleEl) handleEl.innerText = '@' + currentSession.username;
-        const roleBadge = document.getElementById('loggedUserRoleBadge');
-        if (roleBadge) {
-          roleBadge.innerText = currentSession.role;
-          roleBadge.className = (currentSession.role === 'Admin') ? 'badge badge-danger' : 'badge badge-primary';
-        }
-        const userBadge = document.getElementById('txtUserRoleBadge');
-        if (userBadge) userBadge.innerText = currentSession.role;
+        document.getElementById('loggedUserName').innerText = currentSession.fullName || currentSession.username;
+        document.getElementById('loggedUserRole').innerText = currentSession.role;
+        document.getElementById('userAvatarText').innerText = (currentSession.fullName || 'U').charAt(0).toUpperCase();
 
-        // Kontrol Hak Akses Tab Navigasi:
-        if (navBtnGeotag) {
-          navBtnGeotag.style.display = (currentSession.role === 'Admin') ? 'flex' : 'none';
-        }
-        if (navBtnAdmin) {
-          navBtnAdmin.style.display = (currentSession.role === 'Admin') ? 'flex' : 'none';
-        }
-
-        // Jalankan kamera, peta, dan geolokasi hanya setelah login
-        initEmpMap();
-        trackUserGPS();
+        updateRolePermissions();
+        document.querySelector('.nav-btn[data-tab="viewAttendance"]')?.click();
         startCamera();
-        bootstrapData();
+        trackUserGPS();
+        loadAttendanceHistory();
+      }
+    }
+
+    function updateRolePermissions() {
+      const isStaff = currentSession && currentSession.role.toLowerCase() !== 'admin';
+      const navGeotag = document.getElementById('navBtnGeotag');
+      const navAdmin = document.getElementById('navBtnAdmin');
+
+      if (isStaff) {
+        if (navGeotag) navGeotag.style.display = 'none';
+        if (navAdmin) navAdmin.style.display = 'none';
+      } else {
+        if (navGeotag) navGeotag.style.display = 'flex';
+        if (navAdmin) navAdmin.style.display = 'flex';
+      }
+    }
+
+    async function startCamera(isRetry = false) {
+      if (isCameraStarting) return;
+      const video = document.getElementById('videoPreview');
+      const btnRetry = document.getElementById('btnRetryCamera');
+
+      // Jika stream sudah aktif dan berjalan normal, tidak perlu meminta ulang ke hardware
+      if (mediaStream && mediaStream.active) {
+        const liveTrack = mediaStream.getVideoTracks().find(t => t.readyState === 'live');
+        if (liveTrack && video && video.srcObject === mediaStream) {
+          if (video.paused) {
+            try { await video.play(); } catch (e) {}
+          }
+          if (btnRetry) btnRetry.classList.add('hidden');
+          return;
+        }
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Browser Anda tidak mendukung akses kamera.', true);
+        if (btnRetry) btnRetry.classList.remove('hidden');
+        return;
+      }
+
+      isCameraStarting = true;
+      if (btnRetry) btnRetry.classList.add('hidden');
+
+      try {
+        // Hentikan stream lama dan beri jeda waktu agar OS/driver melepaskan hardware kamera
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => {
+            try { t.stop(); } catch (e) {}
+          });
+          mediaStream = null;
+          await new Promise(res => setTimeout(res, 350));
+        }
+
+        // Urutan opsi batasan kamera: dari resolusi ideal ke batasan fleksibel
+        const constraintsList = [
+          { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+          { video: { facingMode: 'user' }, audio: false },
+          { video: true, audio: false }
+        ];
+
+        let stream = null;
+        let lastErr = null;
+
+        for (const constraints of constraintsList) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (stream) break;
+          } catch (e) {
+            lastErr = e;
+            // Jika device sedang sibuk, beri jeda singkat sebelum mencoba fallback
+            await new Promise(res => setTimeout(res, 300));
+          }
+        }
+
+        if (!stream) {
+          throw lastErr || new Error('Tidak dapat mengaktifkan perangkat kamera.');
+        }
+
+        mediaStream = stream;
+        video.srcObject = mediaStream;
+        await video.play();
+        cameraRetryCount = 0;
+      } catch (err) {
+        console.warn('Kamera Error:', err);
+        const errMsg = (err.message || '').toLowerCase();
+        const errName = (err.name || '').toLowerCase();
+
+        // Tangani galat perangkat sibuk / device in use dengan auto-retry
+        if (errName.includes('notreadable') || errMsg.includes('in use') || errMsg.includes('device') || errMsg.includes('starting')) {
+          if (!isRetry && cameraRetryCount < 2) {
+            cameraRetryCount++;
+            isCameraStarting = false;
+            // Coba sekali lagi setelah 600ms untuk memberi waktu OS melepaskan device
+            setTimeout(() => startCamera(true), 600);
+            return;
+          }
+          showToast('Kamera sedang digunakan tab/aplikasi lain. Tutup tab lain lalu tekan coba lagi.', true);
+        } else if (errName.includes('notallowed') || errName.includes('permission')) {
+          showToast('Izin akses kamera ditolak. Harap izinkan akses kamera di browser.', true);
+        } else {
+          showToast('Kamera belum siap: ' + (err.message || 'Perangkat sibuk'), true);
+        }
+
+        if (btnRetry) {
+          btnRetry.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Coba Kamera Lagi';
+          btnRetry.classList.remove('hidden');
+        }
+      } finally {
+        isCameraStarting = false;
       }
     }
 
     function stopCamera() {
-      const video = document.getElementById('faceVideo');
-      if (video && video.srcObject) {
-        try {
-          const stream = video.srcObject;
-          stream.getTracks().forEach(track => track.stop());
-        } catch (e) {}
-        video.srcObject = null;
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+        mediaStream = null;
       }
-    }
-
-    function handleLogout() {
-      openConfirm('Konfirmasi Keluar', 'Apakah Anda yakin ingin keluar dari sesi presensi?', () => {
-        localStorage.removeItem('geoface_session');
-        currentSession = null;
-        stopCamera();
-        checkAuthState();
-        showToast('Anda telah keluar dari akun.');
-      });
+      const video = document.getElementById('videoPreview');
+      if (video) video.srcObject = null;
+      isCameraStarting = false;
     }
 
     function calcDistance(lat1, lon1, lat2, lon2) {
@@ -1398,72 +1286,270 @@
       return Math.round(R * c);
     }
 
-    async function fetchAddress(lat, lng, cb) {
-      try {
-        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`);
-        if (res.ok) {
-          const d = await res.json();
-          cb({
-            line1: d.localityInfo?.administrative?.[3]?.name || d.locality || 'Jl. Jenderal Sudirman No. 45',
-            line2: d.city || d.principalSubdivision || 'Ilir Timur I, Palembang',
-            line3: d.countryName || 'Sumatera Selatan'
+    function fetchAddress(lat, lng, callback) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.address) {
+            const road = d.address.road || d.address.pedestrian || 'Lokasi Terdeteksi';
+            const suburb = d.address.suburb || d.address.village || d.address.city_district || '';
+            const city = d.address.city || d.address.town || d.address.county || '';
+            const state = d.address.state || '';
+            callback({
+              line1: road,
+              line2: `${suburb}${suburb && city ? ', ' : ''}${city}`,
+              line3: state
+            });
+          } else {
+            callback({ line1: 'Koordinat GPS Terkini', line2: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, line3: '' });
+          }
+        })
+        .catch(() => {
+          callback({ line1: 'Koordinat GPS Terkini', line2: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, line3: '' });
+        });
+    }
+
+    function trackUserGPS() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          empPosition.lat = pos.coords.latitude;
+          empPosition.lng = pos.coords.longitude;
+
+          const latEl = document.getElementById('empLatVal');
+          const lngEl = document.getElementById('empLngVal');
+          if (latEl) latEl.innerText = empPosition.lat.toFixed(6);
+          if (lngEl) lngEl.innerText = empPosition.lng.toFixed(6);
+
+          currentDistanceToOffice = calcDistance(empPosition.lat, empPosition.lng, officeConfig.lat, officeConfig.lng);
+          const distLbl = document.getElementById('camDistanceLabel');
+          if (distLbl) distLbl.innerText = `Jarak: ${currentDistanceToOffice} m`;
+
+          const badge = document.getElementById('badgeRadiusStatus');
+          if (badge) {
+            if (currentDistanceToOffice <= officeConfig.radius) {
+              badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1';
+              badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (${currentDistanceToOffice}m)`;
+            } else {
+              badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1';
+              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Luar Radius (${currentDistanceToOffice}m)`;
+            }
+          }
+
+          if (empAdvancedMap) {
+            empAdvancedMap.setMarkers([
+              {
+                id: 1,
+                position: [officeConfig.lat, officeConfig.lng],
+                color: 'red',
+                size: 'large',
+                popup: {
+                  title: officeConfig.title,
+                  content: `${officeConfig.line1}, ${officeConfig.line2}`,
+                  badge: 'Kantor'
+                }
+              },
+              {
+                id: 2,
+                position: [empPosition.lat, empPosition.lng],
+                color: (currentDistanceToOffice <= officeConfig.radius) ? 'green' : 'amber',
+                size: 'medium',
+                pulse: true,
+                popup: {
+                  title: 'Posisi Anda',
+                  content: `Jarak: ${currentDistanceToOffice} meter`,
+                  badge: currentDistanceToOffice <= officeConfig.radius ? 'Valid' : 'Luar Radius'
+                }
+              }
+            ]);
+          }
+
+          fetchAddress(empPosition.lat, empPosition.lng, (a) => {
+            const addrEl = document.getElementById('empAddressText');
+            if (addrEl) addrEl.innerText = `${a.line1}, ${a.line2}`;
           });
-          return;
-        }
-      } catch (e) {}
-      cb({
-        line1: `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-        line2: 'Wilayah Terverifikasi GPS',
-        line3: 'Sumatera Selatan'
-      });
+        },
+        (err) => {
+          console.warn('GPS Warning:', err);
+          showToast('Nyalakan layanan lokasi GPS di perangkat Anda.', true);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
     }
 
     function initEmpMap() {
-      if (empMap) return;
+      if (empAdvancedMap) return;
       const container = document.getElementById('empMiniMap');
       if (!container) return;
 
-      empMap = L.map('empMiniMap', { zoomControl: false, attributionControl: false }).setView([officeConfig.lat, officeConfig.lng], 16);
-      L.tileLayer(GOOGLE_TILE_SERVERS.streets.url, {
-        subdomains: GOOGLE_TILE_SERVERS.streets.subdomains,
-        maxZoom: GOOGLE_TILE_SERVERS.streets.maxZoom
-      }).addTo(empMap);
+      const halfDeg = (officeConfig.radius / 111320);
+      const officePolygon = [
+        [officeConfig.lat + halfDeg, officeConfig.lng - halfDeg],
+        [officeConfig.lat + halfDeg, officeConfig.lng + halfDeg],
+        [officeConfig.lat - halfDeg, officeConfig.lng + halfDeg],
+        [officeConfig.lat - halfDeg, officeConfig.lng - halfDeg]
+      ];
 
-      empRadiusCircle = L.circle([officeConfig.lat, officeConfig.lng], {
-        radius: officeConfig.radius,
-        color: '#0284c7',
-        fillColor: '#38bdf8',
-        fillOpacity: 0.15,
-        weight: 1.5
-      }).addTo(empMap);
-
-      const blueIcon = L.divIcon({ className: 'custom-blue-pulse', iconSize: [16, 16], iconAnchor: [8, 8] });
-      empMarker = L.marker([officeConfig.lat, officeConfig.lng], { icon: blueIcon }).addTo(empMap);
+      empAdvancedMap = new AdvancedMap('empMiniMap', {
+        center: [officeConfig.lat, officeConfig.lng],
+        zoom: 16,
+        enableSearch: false,
+        enableControls: true,
+        markers: [
+          {
+            id: 1,
+            position: [officeConfig.lat, officeConfig.lng],
+            color: 'red',
+            size: 'large',
+            popup: {
+              title: officeConfig.title,
+              content: officeConfig.line1,
+              badge: 'Titik Kantor'
+            }
+          },
+          {
+            id: 2,
+            position: [empPosition.lat, empPosition.lng],
+            color: 'blue',
+            size: 'medium',
+            pulse: true,
+            popup: {
+              title: 'Posisi GPS Anda',
+              content: `Jarak: ${currentDistanceToOffice}m`,
+              badge: 'Anda'
+            }
+          }
+        ],
+        polygons: [
+          {
+            id: 1,
+            positions: officePolygon,
+            style: { color: '#0284c7', weight: 1.8, fillOpacity: 0.12 },
+            popup: 'Zona Perimeter Kantor'
+          }
+        ],
+        circles: [
+          {
+            id: 1,
+            center: [officeConfig.lat, officeConfig.lng],
+            radius: officeConfig.radius,
+            style: { color: '#38bdf8', fillOpacity: 0.2 },
+            popup: `Radius Presensi: ${officeConfig.radius} Meter`
+          }
+        ]
+      });
     }
 
     function initAdminMap() {
-      if (adminMap) return;
+      if (adminAdvancedMap) return;
       const container = document.getElementById('adminGeotagMap');
       if (!container) return;
 
-      adminMap = L.map('adminGeotagMap', { zoomControl: false, attributionControl: false }).setView([officeConfig.lat, officeConfig.lng], 16);
-      adminTileLayer = L.tileLayer(GOOGLE_TILE_SERVERS.streets.url, {
-        subdomains: GOOGLE_TILE_SERVERS.streets.subdomains,
-        maxZoom: GOOGLE_TILE_SERVERS.streets.maxZoom
-      }).addTo(adminMap);
+      const halfDeg = (officeConfig.radius / 111320);
+      const officePolygon = [
+        [officeConfig.lat + halfDeg, officeConfig.lng - halfDeg],
+        [officeConfig.lat + halfDeg, officeConfig.lng + halfDeg],
+        [officeConfig.lat - halfDeg, officeConfig.lng + halfDeg],
+        [officeConfig.lat - halfDeg, officeConfig.lng - halfDeg]
+      ];
 
-      const redIcon = L.divIcon({ className: 'custom-red-pin', iconSize: [22, 22], iconAnchor: [11, 22] });
-      adminMarker = L.marker([officeConfig.lat, officeConfig.lng], { icon: redIcon, draggable: true }).addTo(adminMap);
-
-      adminMarker.on('dragend', (e) => {
-        const p = e.target.getLatLng();
-        updateAdminGeotagFields(p.lat, p.lng);
+      adminAdvancedMap = new AdvancedMap('adminGeotagMap', {
+        center: [officeConfig.lat, officeConfig.lng],
+        zoom: 16,
+        enableSearch: true,
+        enableControls: true,
+        markers: [
+          {
+            id: 'admin-pin',
+            position: [officeConfig.lat, officeConfig.lng],
+            color: 'red',
+            size: 'large',
+            draggable: true,
+            pulse: true,
+            popup: {
+              title: officeConfig.title,
+              content: 'Geser pin untuk menentukan titik kantor.',
+              badge: 'Titik Presensi'
+            },
+            onDragEnd: (latlng) => {
+              updateAdminGeotagFields(latlng.lat, latlng.lng);
+              refreshAdminMapOverlays(latlng.lat, latlng.lng);
+            }
+          }
+        ],
+        polygons: [
+          {
+            id: 1,
+            positions: officePolygon,
+            style: { color: '#ef4444', weight: 2, fillOpacity: 0.15 },
+            popup: 'Perimeter Geofencing Kantor'
+          }
+        ],
+        circles: [
+          {
+            id: 1,
+            center: [officeConfig.lat, officeConfig.lng],
+            radius: officeConfig.radius,
+            style: { color: '#ef4444', fillOpacity: 0.2 },
+            popup: `Radius: ${officeConfig.radius}m`
+          }
+        ],
+        onMapClick: (latlng) => {
+          updateAdminGeotagFields(latlng.lat, latlng.lng);
+          refreshAdminMapOverlays(latlng.lat, latlng.lng);
+        }
       });
+    }
 
-      adminMap.on('click', (e) => {
-        adminMarker.setLatLng(e.latlng);
-        updateAdminGeotagFields(e.latlng.lat, e.latlng.lng);
-      });
+    function refreshAdminMapOverlays(lat, lng) {
+      if (!adminAdvancedMap) return;
+      const radius = parseInt(document.getElementById('geoRadiusMeters').value, 10) || officeConfig.radius;
+      const halfDeg = (radius / 111320);
+      const officePolygon = [
+        [lat + halfDeg, lng - halfDeg],
+        [lat + halfDeg, lng + halfDeg],
+        [lat - halfDeg, lng + halfDeg],
+        [lat - halfDeg, lng - halfDeg]
+      ];
+
+      adminAdvancedMap.setMarkers([
+        {
+          id: 'admin-pin',
+          position: [lat, lng],
+          color: 'red',
+          size: 'large',
+          draggable: true,
+          pulse: true,
+          popup: {
+            title: document.getElementById('geoInputTitle').value || 'Kantor Utama',
+            content: 'Titik kantor aktif untuk presensi karyawan.',
+            badge: 'Titik Kantor'
+          },
+          onDragEnd: (p) => {
+            updateAdminGeotagFields(p.lat, p.lng);
+            refreshAdminMapOverlays(p.lat, p.lng);
+          }
+        }
+      ]);
+
+      adminAdvancedMap.setPolygons([
+        {
+          id: 1,
+          positions: officePolygon,
+          style: { color: '#ef4444', weight: 2, fillOpacity: 0.15 },
+          popup: 'Perimeter Geofencing Kantor'
+        }
+      ]);
+
+      adminAdvancedMap.setCircles([
+        {
+          id: 1,
+          center: [lat, lng],
+          radius: radius,
+          style: { color: '#ef4444', fillOpacity: 0.2 },
+          popup: `Radius: ${radius}m`
+        }
+      ]);
     }
 
     function updateAdminGeotagFields(lat, lng) {
@@ -1476,292 +1562,163 @@
       });
     }
 
-    function trackUserGPS() {
-      if (!currentSession) return;
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            empPosition.lat = pos.coords.latitude;
-            empPosition.lng = pos.coords.longitude;
-            const latEl = document.getElementById('empLatVal');
-            const lngEl = document.getElementById('empLngVal');
-            if (latEl) latEl.innerText = empPosition.lat.toFixed(6);
-            if (lngEl) lngEl.innerText = empPosition.lng.toFixed(6);
+    function captureFacePhoto() {
+      const video = document.getElementById('videoPreview');
+      const canvas = document.getElementById('captureCanvas');
+      if (!video || !video.videoWidth || video.readyState < 2) return null;
 
-            if (empMap && empMarker) {
-              empMarker.setLatLng([empPosition.lat, empPosition.lng]);
-              empMap.fitBounds([[officeConfig.lat, officeConfig.lng], [empPosition.lat, empPosition.lng]], { padding: [25, 25], maxZoom: 17 });
-            }
-
-            currentDistanceToOffice = calcDistance(empPosition.lat, empPosition.lng, officeConfig.lat, officeConfig.lng);
-            const distLbl = document.getElementById('camDistanceLabel');
-            if (distLbl) distLbl.innerText = `Jarak: ${currentDistanceToOffice} m`;
-
-            const badge = document.getElementById('badgeRadiusStatus');
-            if (badge) {
-              if (currentDistanceToOffice <= officeConfig.radius) {
-                badge.className = 'badge badge-success';
-                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (${currentDistanceToOffice}m)`;
-              } else {
-                badge.className = 'badge badge-danger';
-                badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Luar Radius (${currentDistanceToOffice}m)`;
-              }
-            }
-
-            fetchAddress(empPosition.lat, empPosition.lng, (a) => {
-              const addrEl = document.getElementById('empAddressText');
-              if (addrEl) addrEl.innerText = `${a.line1}, ${a.line2}`;
-            });
-          },
-          () => {
-            currentDistanceToOffice = 18;
-            const distLbl = document.getElementById('camDistanceLabel');
-            if (distLbl) distLbl.innerText = `Jarak: 18 m`;
-            const badge = document.getElementById('badgeRadiusStatus');
-            if (badge) {
-              badge.className = 'badge badge-success';
-              badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (18m)`;
-            }
-          },
-          { enableHighAccuracy: true, timeout: 6000 }
-        );
-      }
-    }
-
-    async function startCamera() {
-      if (!currentSession) return;
-      const video = document.getElementById('faceVideo');
-      const fallback = document.getElementById('camFallback');
-      try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'user',
-              width: { ideal: 640 },
-              height: { ideal: 640 }
-            },
-            audio: false
-          });
-          video.srcObject = stream;
-          video.setAttribute('playsinline', 'true');
-          video.setAttribute('autoplay', 'true');
-          video.muted = true;
-          await video.play().catch(e => console.warn('Autoplay error:', e));
-          if (fallback) fallback.style.display = 'none';
-        } else {
-          if (fallback) fallback.style.display = 'flex';
-        }
-      } catch (e) {
-        console.warn('Gagal akses kamera:', e);
-        if (fallback) fallback.style.display = 'flex';
-      }
-    }
-
-    function captureFaceBase64() {
-      const video = document.getElementById('faceVideo');
-      const canvas = document.getElementById('faceCanvas');
-      if (!video || !canvas) return '';
-
-      // Validasi apakah video kamera benar-benar sudah siap
-      if (!video.srcObject || video.readyState < 2 || video.videoWidth === 0) {
-        console.warn('Stream video belum menghasilkan frame.');
-        return '';
-      }
-
-      // Tentukan resolusi target optimal agar ukuran upload ringan (< 50KB)
-      const targetWidth = 400;
-      const targetHeight = Math.round((video.videoHeight / video.videoWidth) * targetWidth) || 400;
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      // Cerminkan kembali seperti cermin selfie HP
-      ctx.save();
-      ctx.translate(targetWidth, 0);
+      // Mirror the canvas image to match selfie preview
+      ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-      ctx.restore();
-
-      return canvas.toDataURL('image/jpeg', 0.72);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.75);
     }
 
     async function handleAttendance(type) {
       if (!currentSession) {
-        showToast('Silakan login terlebih dahulu!', true);
-        checkAuthState();
+        showToast('Silakan login terlebih dahulu.', true);
         return;
       }
 
       if (currentDistanceToOffice > officeConfig.radius) {
-        showToast(`Gagal! Anda berada di luar radius kantor (${currentDistanceToOffice}m > ${officeConfig.radius}m).`, true);
+        showToast(`Gagal! Anda berada di luar radius kantor (${currentDistanceToOffice}m / maks ${officeConfig.radius}m).`, true);
         return;
       }
 
-      const facePhoto = captureFaceBase64();
+      const facePhoto = captureFacePhoto();
       if (!facePhoto) {
-        showToast('Kamera belum siap! Izinkan akses kamera dan pastikan wajah terlihat.', true);
+        showToast('Kamera belum siap mengambil foto. Pastikan kamera menyala dan wajah terlihat.', true);
         startCamera();
         return;
       }
 
-      showToast(`Merekam presensi & mengupload foto...`);
+      showToast(`Mengambil foto dan memproses presensi ${type}...`);
 
-      const res = await apiCall('recordAttendance', {
+      const payload = {
         username: currentSession.username,
         fullName: currentSession.fullName,
         type: type,
         lat: empPosition.lat,
         lng: empPosition.lng,
-        distance: currentDistanceToOffice,
         facePhoto: facePhoto
-      });
+      };
 
+      const res = await apiCall('recordAttendance', payload);
       if (res.success) {
-        if (res.data && res.data.photoSaved === false) {
-          showToast(`Presensi ${type} tercatat, tetapi foto gagal diupload: ${res.data.photoError || 'Cek izin Drive'}`, true);
-        } else {
-          showToast(`Presensi ${type} & Foto Berhasil Disimpan!`);
-        }
+        showToast(`Presensi ${type} berhasil dicatat! Status: ${res.data?.status || 'Tepat Waktu'}`);
         loadAttendanceHistory();
       } else {
-        showToast(res.message || 'Presensi gagal diproses.', true);
+        showToast(res.message, true);
       }
     }
-
-    function formatDirectPhotoUrl(url) {
-      if (!url) return '';
-      if (url.startsWith('data:image')) return url;
-      // Konversi tautan Google Drive agar dapat langsung dirender sebagai gambar <img>
-      const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
-      }
-      return url;
-    }
-
-    let activeHistoryData = [];
 
     async function loadAttendanceHistory() {
-      const res = await apiCall('getAttendanceReport', {});
-      const list = document.getElementById('attendanceHistoryList');
-      list.innerHTML = '';
+      const listEl = document.getElementById('attendanceList');
+      if (!listEl) return;
+
+      const res = await apiCall('getAttendanceReport', { username: currentSession?.username });
       if (res.success && res.data && res.data.length > 0) {
-        activeHistoryData = res.data;
-        res.data.slice(0, 10).forEach((row, idx) => {
-          const item = document.createElement('div');
-          item.className = 'att-item-card';
-
-          const directPhoto = formatDirectPhotoUrl(row.photoUrl);
-          const photoThumbHtml = directPhoto
-            ? `<div style="position:relative;">
-                 <img src="${directPhoto}" class="att-photo-thumb" data-idx="${idx}" alt="Selfie" onerror="this.onerror=null; this.src='https://placehold.co/100x100/0f172a/38bdf8?text=Foto';">
-                 <span style="position:absolute; bottom:2px; right:2px; background:rgba(0,0,0,0.7); border-radius:4px; padding:1px 3px; font-size:0.55rem; color:#fff; pointer-events:none;"><i class="fa-solid fa-expand"></i></span>
+        listEl.innerHTML = '';
+        res.data.forEach(item => {
+          const isLate = item.status === 'Terlambat';
+          const card = document.createElement('div');
+          card.className = 'p-2.5 bg-slate-900/90 rounded-xl border border-white/10 flex items-center justify-between gap-3 text-xs';
+          
+          const photoThumb = item.photoUrl
+            ? `<div class="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border border-white/20 group" onclick="openPhotoLightbox('${item.photoUrl}', '${item.fullName} (${item.type})', '${item.date} ${item.time}')">
+                 <img src="${item.photoUrl}" alt="Selfie" class="w-full h-full object-cover group-hover:scale-110 transition duration-200" onerror="this.src='https://placehold.co/100x100/1e293b/38bdf8?text=Foto';">
+                 <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-[10px] text-white"></i></div>
                </div>`
-            : `<div class="att-photo-placeholder" title="Tidak ada foto"><i class="fa-solid fa-camera"></i></div>`;
+            : `<div class="w-11 h-11 rounded-lg bg-slate-800 text-slate-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-image text-sm"></i></div>`;
 
-          item.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-              ${photoThumbHtml}
-              <div style="min-width:0; flex:1;">
-                <div style="font-size:0.82rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Presensi ${row.type}</div>
-                <div style="font-size:0.7rem; color:var(--text-muted);">${row.time} &bull; Jarak ${row.distance}m</div>
-                ${row.photoUrl ? `<button type="button" class="btn-open-photo" data-idx="${idx}" style="background:transparent; border:none; color:#38bdf8; font-size:0.68rem; padding:0; margin-top:3px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; font-weight:600;"><i class="fa-solid fa-eye"></i> Lihat Foto</button>` : `<span style="font-size:0.65rem; color:var(--text-muted); margin-top:3px; display:block;">Foto belum ada</span>`}
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              ${photoThumb}
+              <div>
+                <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                  <span>${item.type}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${isLate ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}">${item.status}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono">${item.date} • ${item.time}</div>
               </div>
             </div>
-            <span class="badge ${row.status === 'Terlambat' ? 'badge-danger' : 'badge-success'}" style="flex-shrink:0;">${row.status}</span>
+            <div class="text-right font-mono text-[10px] text-slate-400">
+              ${item.distance}m
+            </div>
           `;
-          list.appendChild(item);
-        });
-
-        // Event listener klik thumbnail foto dan tombol "Lihat Foto"
-        document.querySelectorAll('.att-photo-thumb, .btn-open-photo').forEach(el => {
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const idx = parseInt(el.getAttribute('data-idx'), 10);
-            if (activeHistoryData[idx]) {
-              openPhotoViewerModal(activeHistoryData[idx]);
-            }
-          });
+          listEl.appendChild(card);
         });
       } else {
-        list.innerHTML = `
-          <div style="text-align:center; padding:18px; color:var(--text-muted); font-size:0.78rem;">
-            <i class="fa-solid fa-clock-rotate-left" style="font-size:1.5rem; margin-bottom:6px; display:block; opacity:0.6;"></i>
-            Belum ada catatan riwayat presensi.
-          </div>
-        `;
+        listEl.innerHTML = '<div class="text-center py-6 text-slate-500 text-xs">Belum ada riwayat kehadiran tercatat.</div>';
       }
     }
 
-    function openPhotoViewerModal(record) {
-      const modal = document.getElementById('modalPhotoViewer');
-      const img = document.getElementById('viewerPhotoImg');
-      const badge = document.getElementById('viewerPhotoBadge');
-      const userText = document.getElementById('viewerUserName');
-      const statusBadge = document.getElementById('viewerStatusBadge');
-      const timeText = document.getElementById('viewerTimeText');
-      const distText = document.getElementById('viewerDistText');
-      const driveBtn = document.getElementById('btnViewerDriveLink');
-
-      const directUrl = formatDirectPhotoUrl(record.photoUrl);
-      img.src = directUrl || 'https://placehold.co/400x400/0f172a/38bdf8?text=Foto+Presensi';
-
-      badge.innerHTML = `<span class="badge ${record.type === 'Masuk' ? 'badge-primary' : 'badge-success'}">${record.type}</span>`;
-      userText.innerText = record.fullName || record.username || currentSession.fullName;
-      
-      statusBadge.className = `badge ${record.status === 'Terlambat' ? 'badge-danger' : 'badge-success'}`;
-      statusBadge.innerText = record.status || 'Tepat Waktu';
-
-      timeText.innerText = `${record.date || 'Hari ini'} • ${record.time || '--:--'}`;
-      distText.innerText = `Jarak: ${record.distance || 0}m`;
-
-      if (record.photoUrl && record.photoUrl.startsWith('http')) {
-        driveBtn.href = record.photoUrl;
-        driveBtn.style.display = 'inline-flex';
-      } else {
-        driveBtn.style.display = 'none';
-      }
-
-      modal.style.display = 'flex';
+    function openPhotoLightbox(photoUrl, title, meta) {
+      document.getElementById('lightboxImage').src = photoUrl;
+      document.getElementById('lightboxTitle').innerText = title;
+      document.getElementById('lightboxMeta').innerText = meta;
+      document.getElementById('lightboxDriveLink').href = photoUrl;
+      const m = document.getElementById('modalPhotoLightbox');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
     }
 
-    document.getElementById('btnClosePhotoViewer')?.addEventListener('click', () => {
-      document.getElementById('modalPhotoViewer').style.display = 'none';
+    document.getElementById('btnCloseLightbox')?.addEventListener('click', () => {
+      const m = document.getElementById('modalPhotoLightbox');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
     });
-    document.getElementById('btnDismissPhotoViewer')?.addEventListener('click', () => {
-      document.getElementById('modalPhotoViewer').style.display = 'none';
-    });
+
+    async function loadOfficeConfig() {
+      const res = await apiCall('getOfficeConfig');
+      if (res.success && res.data) {
+        officeConfig = res.data;
+        document.getElementById('geoInputTitle').value = officeConfig.title;
+        document.getElementById('geoRadiusMeters').value = officeConfig.radius;
+        document.getElementById('geoLatText').innerText = officeConfig.lat.toFixed(6);
+        document.getElementById('geoLngText').innerText = officeConfig.lng.toFixed(6);
+        document.getElementById('geoLine1').value = officeConfig.line1 || '';
+        document.getElementById('geoLine2').value = officeConfig.line2 || '';
+        document.getElementById('geoLine3').value = officeConfig.line3 || '';
+      }
+    }
+
+    async function loadWorkSchedule() {
+      const res = await apiCall('getWorkSchedule');
+      if (res.success && res.data) {
+        document.getElementById('schedInTime').value = res.data.inTime || '08:00';
+        document.getElementById('schedOutTime').value = res.data.outTime || '17:00';
+        document.getElementById('schedTolerance').value = res.data.tolerance || 15;
+      }
+    }
 
     async function loadUserList() {
-      const res = await apiCall('getUserList', {});
-      const box = document.getElementById('userCrudListContainer');
-      box.innerHTML = '';
-      if (res.success && res.data) {
+      const table = document.getElementById('userListTable');
+      if (!table) return;
+      const res = await apiCall('getUserList');
+      if (res.success && res.data && res.data.length > 0) {
+        table.innerHTML = '';
         res.data.forEach(u => {
-          const d = document.createElement('div');
-          d.className = 'ui-card';
-          d.style.padding = '8px 12px';
-          d.style.marginBottom = '6px';
-          d.style.display = 'flex';
-          d.style.justifyContent = 'space-between';
-          d.style.alignItems = 'center';
-          d.innerHTML = `
+          const row = document.createElement('div');
+          row.className = 'p-2.5 bg-slate-950/80 rounded-xl border border-white/10 flex items-center justify-between text-xs';
+          row.innerHTML = `
             <div>
-              <div style="font-size:0.82rem; font-weight:700;">${u.fullName}</div>
-              <div style="font-size:0.68rem; color:var(--text-muted);">@${u.username} &bull; ${u.role}</div>
+              <div class="font-bold text-slate-200">${u.fullName} <span class="text-[10px] text-sky-400 font-mono">(@${u.username})</span></div>
+              <div class="text-[10px] text-slate-400">Role: <span class="text-slate-300 font-semibold">${u.role}</span></div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="badge badge-primary">${u.role}</span>
-              ${u.username !== 'admin' ? `<button data-id="${u.userId}" class="btn-del-user" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-            </div>
+            ${u.username === 'admin' ? '<span class="text-[10px] text-slate-500 font-bold">Admin Utama</span>' : `<button type="button" class="btn-del-user px-2 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 text-[10px] font-bold hover:bg-red-500/20 transition" data-id="${u.userId}" data-name="${u.fullName}">Hapus</button>`}
           `;
-          box.appendChild(d);
+          table.appendChild(row);
         });
 
-        document.querySelectorAll('.btn-del-user').forEach(btn => {
+        table.querySelectorAll('.btn-del-user').forEach(btn => {
           btn.addEventListener('click', () => {
             const uid = btn.getAttribute('data-id');
-            openConfirm('Hapus Karyawan', 'Apakah Anda yakin ingin menghapus data karyawan ini?', async () => {
+            const name = btn.getAttribute('data-name');
+            showConfirmModal('Hapus Pengguna', `Hapus akun "${name}" dari database?`, async () => {
               const r = await apiCall('deleteUser', { userId: uid });
               if (r.success) {
                 showToast('Karyawan berhasil dihapus.');
@@ -1772,50 +1729,140 @@
             });
           });
         });
+      } else {
+        table.innerHTML = '<div class="text-center py-4 text-slate-500 text-xs">Belum ada karyawan terdaftar.</div>';
       }
     }
 
+    // Role switcher tab selection
+    const btnRoleStaff = document.getElementById('btnRoleStaff');
+    const btnRoleAdmin = document.getElementById('btnRoleAdmin');
+
+    function setRoleUI(role) {
+      selectedLoginRole = role;
+      if (role === 'Staff') {
+        btnRoleStaff.className = 'py-2 text-xs font-bold rounded-lg transition bg-sky-500 text-white shadow-md shadow-sky-500/20';
+        btnRoleAdmin.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white';
+      } else {
+        btnRoleAdmin.className = 'py-2 text-xs font-bold rounded-lg transition bg-indigo-600 text-white shadow-md shadow-indigo-600/20';
+        btnRoleStaff.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white';
+      }
+    }
+
+    btnRoleStaff?.addEventListener('click', () => setRoleUI('Staff'));
+    btnRoleAdmin?.addEventListener('click', () => setRoleUI('Admin'));
+    setRoleUI('Staff');
+
+    // Toggle password visibility
+    document.getElementById('btnTogglePassword')?.addEventListener('click', () => {
+      const pwd = document.getElementById('loginPassword');
+      const icon = document.getElementById('btnTogglePassword').querySelector('i');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        pwd.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    });
+
+    // Handle Login Form Submit
+    document.getElementById('formLoginPre')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
+      if (!u || !p) return;
+
+      showToast('Memverifikasi akun...');
+      const res = await apiCall('login', { username: u, password: p, role: selectedLoginRole });
+      if (res.success && res.user) {
+        currentSession = res.user;
+        localStorage.setItem('geoface_session', JSON.stringify(currentSession));
+        showToast(`Selamat datang, ${currentSession.fullName}!`);
+        checkAuthState();
+      } else {
+        showToast(res.message || 'Login gagal. Periksa username dan password.', true);
+      }
+    });
+
+    // Handle Logout
+    document.getElementById('btnHeaderLogout')?.addEventListener('click', () => {
+      showConfirmModal('Keluar Aplikasi', 'Apakah Anda ingin keluar dari akun presensi saat ini?', () => {
+        localStorage.removeItem('geoface_session');
+        currentSession = null;
+        stopCamera();
+        showToast('Anda telah keluar.');
+        checkAuthState();
+      });
+    });
+
+    // Tab Navigation Switcher
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'text-sky-400'));
         document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
+
+        btn.classList.add('active', 'text-sky-400');
         const target = btn.getAttribute('data-tab');
-        document.getElementById(target)?.classList.add('active');
+        const targetEl = document.getElementById(target);
+        if (targetEl) targetEl.classList.add('active');
 
         if (target === 'viewAdminGeotag') {
-          setTimeout(() => { initAdminMap(); if (adminMap) adminMap.invalidateSize(); }, 200);
+          stopCamera(); // Bebaskan kamera saat admin beralih ke peta geotagging
+          setTimeout(() => {
+            initAdminMap();
+            if (adminAdvancedMap) adminAdvancedMap.invalidateSize();
+          }, 200);
         } else if (target === 'viewAttendance') {
-          setTimeout(() => { if (empMap) empMap.invalidateSize(); }, 200);
+          startCamera(); // Nyalakan kembali kamera saat beralih ke tab presensi
+          setTimeout(() => {
+            initEmpMap();
+            if (empAdvancedMap) empAdvancedMap.invalidateSize();
+          }, 200);
         } else if (target === 'viewAdminManage') {
+          stopCamera(); // Bebaskan kamera saat beralih ke panel kelola karyawan
+          loadWorkSchedule();
           loadUserList();
         }
       });
     });
 
-    document.getElementById('btnRetryCamera')?.addEventListener('click', () => {
-      startCamera();
+    // Lepas kunci kamera saat tab browser di-minimize atau berpindah tab
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        stopCamera();
+      } else if (document.visibilityState === 'visible') {
+        const currentActive = document.querySelector('.tab-view.active');
+        if (currentActive && currentActive.id === 'viewAttendance' && currentSession) {
+          startCamera();
+        }
+      }
     });
 
-    document.getElementById('btnBackToHome')?.addEventListener('click', () => {
-      document.querySelector('.nav-btn[data-tab="viewAttendance"]').click();
+    // Actions
+    document.getElementById('btnRetryCamera')?.addEventListener('click', () => startCamera());
+    document.getElementById('btnRefreshGPS')?.addEventListener('click', () => {
+      showToast('Menyinkronkan koordinat GPS...');
+      trackUserGPS();
+    });
+    document.getElementById('btnRefreshHistory')?.addEventListener('click', () => {
+      showToast('Memperbarui riwayat...');
+      loadAttendanceHistory();
     });
 
     document.getElementById('btnAbsenMasuk')?.addEventListener('click', () => handleAttendance('Masuk'));
     document.getElementById('btnAbsenPulang')?.addEventListener('click', () => handleAttendance('Pulang'));
-    document.getElementById('btnRefreshGPS')?.addEventListener('click', () => { showToast('Menyinkronkan sinyal GPS...'); trackUserGPS(); });
 
+    // Admin Geotag Actions
     document.getElementById('btnSwitchTile')?.addEventListener('click', () => {
-      if (!adminMap) return;
       currentTileMode = (currentTileMode === 'streets') ? 'satellite' : 'streets';
-      if (adminTileLayer) adminMap.removeLayer(adminTileLayer);
-      const s = GOOGLE_TILE_SERVERS[currentTileMode];
-      adminTileLayer = L.tileLayer(s.url, { subdomains: s.subdomains, maxZoom: s.maxZoom }).addTo(adminMap);
-      showToast(`Peta beralih ke: Google Maps ${currentTileMode === 'streets' ? 'Peta Jalan' : 'Satelit Hybrid'}`);
+      if (adminAdvancedMap) adminAdvancedMap.setTileMode(currentTileMode);
+      if (empAdvancedMap) empAdvancedMap.setTileMode(currentTileMode);
+      showToast(`Peta beralih ke: Google Maps ${currentTileMode === 'streets' ? 'Jalan' : 'Satelit Hybrid'}`);
     });
 
     document.getElementById('btnCenterOffice')?.addEventListener('click', () => {
-      if (adminMap && adminMarker) adminMap.flyTo(adminMarker.getLatLng(), 17);
+      if (adminAdvancedMap) adminAdvancedMap.flyTo([officeConfig.lat, officeConfig.lng], 17);
     });
 
     document.getElementById('btnSetCurrentAdminGPS')?.addEventListener('click', () => {
@@ -1823,12 +1870,10 @@
         navigator.geolocation.getCurrentPosition((p) => {
           const lat = p.coords.latitude;
           const lng = p.coords.longitude;
-          if (adminMap && adminMarker) {
-            adminMarker.setLatLng([lat, lng]);
-            adminMap.setView([lat, lng], 17);
-            updateAdminGeotagFields(lat, lng);
-            showToast('Pin peta diarahkan ke posisi Anda.');
-          }
+          updateAdminGeotagFields(lat, lng);
+          refreshAdminMapOverlays(lat, lng);
+          if (adminAdvancedMap) adminAdvancedMap.flyTo([lat, lng], 17);
+          showToast('Pin diarahkan ke koordinat GPS Anda.');
         });
       }
     });
@@ -1843,203 +1888,92 @@
         line2: document.getElementById('geoLine2').value,
         line3: document.getElementById('geoLine3').value
       };
+      showToast('Menyimpan titik kantor ke database...');
       const res = await apiCall('saveOfficeConfig', cfg);
       if (res.success) {
-        showToast('Titik kantor berhasil disimpan ke Google Sheets!');
+        showToast('Titik kantor berhasil diperbarui!');
         officeConfig = cfg;
-        if (empRadiusCircle) {
-          empRadiusCircle.setLatLng([cfg.lat, cfg.lng]);
-          empRadiusCircle.setRadius(cfg.radius);
-        }
+        refreshAdminMapOverlays(cfg.lat, cfg.lng);
       } else {
         showToast(res.message, true);
       }
     });
 
+    // Schedule Save Action
     document.getElementById('btnSaveSchedule')?.addEventListener('click', async () => {
-      const inTime = document.getElementById('cfgInTime').value;
-      const outTime = document.getElementById('cfgOutTime').value;
-      const tol = parseInt(document.getElementById('cfgLateTol').value, 10);
-      const res = await apiCall('saveWorkSchedule', { inTime, outTime, tolerance: tol });
-      if (res.success) showToast('Jadwal jam kerja diperbarui!');
-    });
-
-    // Theme Switcher
-    const themeBtn = document.getElementById('btnThemeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    function setTheme(mode) {
-      if (mode === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-        themeIcon.className = 'fa-solid fa-moon';
-      } else {
-        document.documentElement.classList.remove('light');
-        document.documentElement.classList.add('dark');
-        themeIcon.className = 'fa-solid fa-sun';
-      }
-      localStorage.setItem('geoface_theme', mode);
-    }
-    setTheme(localStorage.getItem('geoface_theme') || 'dark');
-    themeBtn?.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.contains('dark');
-      setTheme(isDark ? 'light' : 'dark');
-    });
-
-    // Jam Digital
-    function updateClock() {
-      const now = new Date();
-      const clockEl = document.getElementById('liveClock');
-      const dateEl = document.getElementById('liveDate');
-      if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
-      if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // Modal Manajemen
-    const modalApiConfig = document.getElementById('modalApiConfig');
-    const modalAddUser = document.getElementById('modalAddUser');
-
-    document.getElementById('btnApiConfig')?.addEventListener('click', () => {
-      document.getElementById('inputGasUrl').value = getApiUrl();
-      modalApiConfig.style.display = 'flex';
-    });
-    document.getElementById('apiStatusBanner')?.addEventListener('click', () => {
-      document.getElementById('inputGasUrl').value = getApiUrl();
-      modalApiConfig.style.display = 'flex';
-    });
-    document.getElementById('btnCloseApiModal')?.addEventListener('click', () => modalApiConfig.style.display = 'none');
-
-    document.getElementById('btnSaveApiUrl')?.addEventListener('click', () => {
-      const val = document.getElementById('inputGasUrl').value.trim();
-      localStorage.setItem('geoface_gas_url', val);
-      modalApiConfig.style.display = 'none';
-      showToast('URL Apps Script disimpan!');
-      if (currentSession) bootstrapData();
-    });
-
-    document.getElementById('btnTestApi')?.addEventListener('click', async () => {
-      showToast('Menguji koneksi...');
-      const r = await apiCall('ping', {});
-      if (r.success) {
-        showToast('Koneksi backend Apps Script berhasil!');
-      } else {
-        showToast(r.message, true);
-      }
-    });
-
-    document.getElementById('btnOpenAddUserModal')?.addEventListener('click', () => modalAddUser.style.display = 'flex');
-    document.getElementById('btnCloseAddUser')?.addEventListener('click', () => modalAddUser.style.display = 'none');
-
-    // Toggle Role Login Pre-Login (Karyawan vs Admin)
-    const btnRoleStaff = document.getElementById('btnRoleStaff');
-    const btnRoleAdmin = document.getElementById('btnRoleAdmin');
-    const lblUsername = document.getElementById('lblUsername');
-    const loginUsername = document.getElementById('loginUsername');
-    const loginRoleHint = document.getElementById('loginRoleHint');
-
-    btnRoleStaff?.addEventListener('click', () => {
-      selectedLoginRole = 'Staff';
-      btnRoleStaff.classList.add('active');
-      btnRoleAdmin.classList.remove('active');
-      lblUsername.innerText = 'Username Karyawan';
-      loginUsername.placeholder = 'Masukkan username karyawan';
-      loginRoleHint.innerHTML = 'Login Karyawan: Masukkan username & password Anda untuk melakukan presensi.';
-    });
-
-    btnRoleAdmin?.addEventListener('click', () => {
-      selectedLoginRole = 'Admin';
-      btnRoleAdmin.classList.add('active');
-      btnRoleStaff.classList.remove('active');
-      lblUsername.innerText = 'Username Admin';
-      loginUsername.placeholder = 'admin';
-      loginRoleHint.innerHTML = 'Login Admin: Memiliki akses penuh ke Geotagging & Manajemen Karyawan. (Default: <b>admin</b> / <b>123</b>)';
-    });
-
-    // Toggle Show/Hide Password di Form Login
-    document.getElementById('btnToggleLoginPwd')?.addEventListener('click', () => {
-      const p = document.getElementById('loginPassword');
-      p.type = (p.type === 'password') ? 'text' : 'password';
-    });
-
-    // Proses Submit Login
-    async function submitPreLogin() {
-      const u = document.getElementById('loginUsername').value.trim();
-      const p = document.getElementById('loginPassword').value.trim();
-
-      if (!u || !p) {
-        showToast('Lengkapi username dan password!', true);
-        return;
-      }
-
-      showToast(`Memvalidasi akun ${selectedLoginRole}...`);
-      const res = await apiCall('login', { username: u, password: p, role: selectedLoginRole });
-
-      if (res.success && res.user) {
-        currentSession = res.user;
-        localStorage.setItem('geoface_session', JSON.stringify(currentSession));
-        showToast(`Login berhasil sebagai ${currentSession.role}!`);
-        // Kosongkan form login
-        document.getElementById('loginUsername').value = '';
-        document.getElementById('loginPassword').value = '';
-        checkAuthState();
-      } else {
-        showToast(res.message || 'Login gagal. Periksa kembali username & password.', true);
-      }
-    }
-
-    document.getElementById('formLoginPre')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      submitPreLogin();
-    });
-    document.getElementById('btnSubmitLoginPre')?.addEventListener('click', submitPreLogin);
-
-    // Logout Handlers
-    document.getElementById('btnLogoutSession')?.addEventListener('click', handleLogout);
-    document.getElementById('btnHeaderLogout')?.addEventListener('click', handleLogout);
-
-    document.getElementById('btnSaveNewUser')?.addEventListener('click', async () => {
-      const fullName = document.getElementById('newFullName').value.trim();
-      const username = document.getElementById('newUsername').value.trim();
-      const password = document.getElementById('newPassword').value.trim();
-      const role = document.getElementById('newRole').value;
-      if (!fullName || !username || !password) return showToast('Lengkapi data formulir!', true);
-
-      const res = await apiCall('addUser', { fullName, username, password, role });
+      const p = {
+        inTime: document.getElementById('schedInTime').value,
+        outTime: document.getElementById('schedOutTime').value,
+        tolerance: parseInt(document.getElementById('schedTolerance').value, 10) || 15
+      };
+      showToast('Menyimpan pengaturan jadwal kerja...');
+      const res = await apiCall('saveWorkSchedule', p);
       if (res.success) {
-        showToast('Karyawan baru berhasil ditambahkan!');
-        modalAddUser.style.display = 'none';
+        showToast('Jadwal jam kerja berhasil disimpan.');
+      } else {
+        showToast(res.message, true);
+      }
+    });
+
+    // Add User Action
+    document.getElementById('formAddUser')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const p = {
+        username: document.getElementById('newUsername').value.trim(),
+        password: document.getElementById('newPassword').value.trim(),
+        fullName: document.getElementById('newFullName').value.trim(),
+        role: document.getElementById('newRole').value
+      };
+      showToast('Mendaftarkan akun karyawan...');
+      const res = await apiCall('addUser', p);
+      if (res.success) {
+        showToast('Karyawan baru berhasil didaftarkan!');
+        document.getElementById('formAddUser').reset();
         loadUserList();
       } else {
         showToast(res.message, true);
       }
     });
 
-    async function bootstrapData() {
-      const res = await apiCall('getOfficeConfig');
-      if (res.success && res.data) {
-        officeConfig = res.data;
-        const gTitle = document.getElementById('geoInputTitle');
-        const gLat = document.getElementById('geoLatText');
-        const gLng = document.getElementById('geoLngText');
-        const gL1 = document.getElementById('geoLine1');
-        const gL2 = document.getElementById('geoLine2');
-        const gL3 = document.getElementById('geoLine3');
-        const gRad = document.getElementById('geoRadiusMeters');
+    // Config GAS URL Dialog
+    document.getElementById('btnOpenConfig')?.addEventListener('click', () => {
+      document.getElementById('inputGasUrl').value = getApiUrl();
+      const m = document.getElementById('modalGasConfig');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    });
 
-        if (gTitle) gTitle.value = officeConfig.title;
-        if (gLat) gLat.innerText = officeConfig.lat.toFixed(6);
-        if (gLng) gLng.innerText = officeConfig.lng.toFixed(6);
-        if (gL1) gL1.value = officeConfig.line1;
-        if (gL2) gL2.value = officeConfig.line2;
-        if (gL3) gL3.value = officeConfig.line3;
-        if (gRad) gRad.value = officeConfig.radius;
+    document.getElementById('btnCloseGasConfig')?.addEventListener('click', () => {
+      const m = document.getElementById('modalGasConfig');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    });
+
+    document.getElementById('btnSaveGasUrl')?.addEventListener('click', () => {
+      const val = document.getElementById('inputGasUrl').value.trim();
+      if (val && val.startsWith('http')) {
+        localStorage.setItem('geoface_gas_url', val);
+        showToast('URL Google Apps Script berhasil disimpan.');
+        document.getElementById('btnCloseGasConfig').click();
+      } else {
+        showToast('Masukkan format URL Apps Script yang valid.', true);
       }
-      loadAttendanceHistory();
-    }
+    });
 
-    window.addEventListener('DOMContentLoaded', async () => {
+    // Live Clock Runner
+    setInterval(() => {
+      const now = new Date();
+      const clockEl = document.getElementById('liveClock');
+      const dateEl = document.getElementById('liveDate');
+      if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+      if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+    }, 1000);
+
+    // Initial Load
+    window.addEventListener('load', () => {
+      loadOfficeConfig();
       checkAuthState();
+      initEmpMap();
     });
   </script>
 </body>
